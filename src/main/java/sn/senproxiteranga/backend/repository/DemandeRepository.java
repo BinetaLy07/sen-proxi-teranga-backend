@@ -1,0 +1,29 @@
+package sn.senproxiteranga.backend.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import sn.senproxiteranga.backend.domain.Demande;
+import sn.senproxiteranga.backend.domain.enums.StatutDemande;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface DemandeRepository extends JpaRepository<Demande, Long> {
+
+    // Les demandes d'un client, les plus récentes d'abord (suivi côté client)
+    List<Demande> findByClientIdOrderByCreatedAtDesc(Long clientId);
+
+    // Les demandes reçues par un professionnel, les plus récentes d'abord
+    List<Demande> findByProfessionnelIdOrderByCreatedAtDesc(Long professionnelId);
+
+    // Les demandes reçues par un professionnel, filtrées par statut (ex : seulement les CREEE)
+    List<Demande> findByProfessionnelIdAndStatutOrderByCreatedAtDesc(Long professionnelId, StatutDemande statut);
+
+    // Une demande précise, à condition qu'elle appartienne à ce client
+    Optional<Demande> findByIdAndClientId(Long id, Long clientId);
+
+    // Une demande précise, à condition qu'elle soit adressée à ce professionnel
+    Optional<Demande> findByIdAndProfessionnelId(Long id, Long professionnelId);
+
+    // Ce service a-t-il déjà des demandes ? (pour empêcher sa suppression)
+    boolean existsByServiceId(Long serviceId);
+}
