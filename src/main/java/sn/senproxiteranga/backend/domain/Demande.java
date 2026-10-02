@@ -42,6 +42,17 @@ public class Demande extends BaseEntity {
     @Column(name = "motif_annulation", length = 500)
     private String motifAnnulation;
 
+    // ----- Visite avant devis -----
+
+    // Le client souhaite que le professionnel passe voir avant de faire le devis
+    @Column(name = "visite_demandee", nullable = false)
+    private boolean visiteDemandee = false;
+
+    // Frais de visite fixés par le professionnel quand il accepte la demande :
+    // null = pas de visite demandée, 0 = visite gratuite, > 0 = montant à payer
+    @Column(name = "frais_visite")
+    private Double fraisVisite;
+
     // ----- Liens -----
 
     // Le client qui a créé la demande

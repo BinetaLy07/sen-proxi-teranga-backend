@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
+import sn.senproxiteranga.backend.dto.AccepterDemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.MotifRequest;
@@ -53,9 +54,11 @@ public class DemandeController {
         return demandeService.listerParProfessionnel(proId, statut);
     }
 
+    // Le corps est facultatif : {"fraisVisite": 1000} seulement si le client a demandé une visite
     @PatchMapping("/professionnels/{proId}/demandes/{demandeId}/accepter")
-    public DemandeResponse accepter(@PathVariable Long proId, @PathVariable Long demandeId) {
-        return demandeService.accepter(proId, demandeId);
+    public DemandeResponse accepter(@PathVariable Long proId, @PathVariable Long demandeId,
+                                    @Valid @RequestBody(required = false) AccepterDemandeRequest request) {
+        return demandeService.accepter(proId, demandeId, request);
     }
 
     @PatchMapping("/professionnels/{proId}/demandes/{demandeId}/refuser")

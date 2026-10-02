@@ -11,6 +11,7 @@ import sn.senproxiteranga.backend.domain.Zone;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.dto.AccepterDemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.MotifRequest;
@@ -105,9 +106,20 @@ public class DemandeServiceImpl implements DemandeService {
     // =============== CÔTÉ PROFESSIONNEL ===============
 
     @Override
-    public DemandeResponse accepter(Long professionnelId, Long demandeId) {
+    public DemandeResponse accepter(Long professionnelId, Long demandeId, AccepterDemandeRequest request) {
         Demande demande = chercherDemandeDuPro(professionnelId, demandeId);
         verifierEnAttenteDeReponse(demande);                                // Règle 5
+
+        // Règle 8 : frais de visite (c'est le professionnel qui décide)
+        Double frais = (request != null) ? request.fraisVisite() : null;
+        if (demande.isVisiteDemandee()) {
+            // Visite demandée : montant indiqué par le pro, ou 0 (gratuite) s'il n'indique rien
+            demande.setFraisVisite(frais != null ? frais : 0.0);
+        } else if (frais != null && frais > 0) {
+            // Pas de visite demandée : le pro ne peut pas faire payer une visite
+            throw new BusinessException("Le client n'a pas demandé de visite : aucun frais de visite ne peut être fixé");
+        }
+
         demande.setStatut(StatutDemande.ACCEPTEE);
         return demandeMapper.toResponse(demandeRepository.save(demande));
     }

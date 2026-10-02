@@ -18,6 +18,10 @@ public record DemandeResponse(
         String motifRefus,
         String motifAnnulation,
 
+        // Visite avant devis
+        boolean visiteDemandee,
+        Double fraisVisite,        // null = pas de visite, 0 = gratuite, > 0 = montant
+
         // Le client
         Long clientId,
         String clientNom,

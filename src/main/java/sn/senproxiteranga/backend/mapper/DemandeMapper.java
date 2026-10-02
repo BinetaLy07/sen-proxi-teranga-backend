@@ -26,6 +26,8 @@ public class DemandeMapper {
         demande.setDateSouhaitee(request.dateSouhaitee());
         // Vrai seulement si "urgente" vaut true ; faux s'il vaut false ou s'il est absent
         demande.setUrgente(Boolean.TRUE.equals(request.urgente()));
+        // Même principe pour la visite : vrai seulement si le client a coché la case
+        demande.setVisiteDemandee(Boolean.TRUE.equals(request.visiteDemandee()));
     }
 
     // Demande de la base -> réponse envoyée à Angular
@@ -46,6 +48,9 @@ public class DemandeMapper {
                 demande.getDateExpiration(),
                 demande.getMotifRefus(),
                 demande.getMotifAnnulation(),
+
+                demande.isVisiteDemandee(),
+                demande.getFraisVisite(),
 
                 client.getId(),
                 client.getPrenom() + " " + client.getNom(),

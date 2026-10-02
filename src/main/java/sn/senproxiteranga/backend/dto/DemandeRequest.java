@@ -28,6 +28,10 @@ public record DemandeRequest(
         Boolean urgente,
 
         // Facultatif : le quartier de l'intervention
-        Long zoneId
+        Long zoneId,
+
+        // Facultatif : le client souhaite que le professionnel passe voir avant le devis
+        // (si absent, pas de visite demandée)
+        Boolean visiteDemandee
 ) {
 }

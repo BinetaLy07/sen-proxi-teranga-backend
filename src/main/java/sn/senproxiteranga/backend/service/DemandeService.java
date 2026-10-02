@@ -1,6 +1,7 @@
 package sn.senproxiteranga.backend.service;
 
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
+import sn.senproxiteranga.backend.dto.AccepterDemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.MotifRequest;
@@ -19,7 +20,9 @@ public interface DemandeService {
     List<DemandeResponse> listerParClient(Long clientId);
 
     // ----- Côté professionnel -----
-    DemandeResponse accepter(Long professionnelId, Long demandeId);
+
+    // request peut être null : acceptation simple, sans frais de visite
+    DemandeResponse accepter(Long professionnelId, Long demandeId, AccepterDemandeRequest request);
 
     DemandeResponse refuser(Long professionnelId, Long demandeId, MotifRequest request);
 
