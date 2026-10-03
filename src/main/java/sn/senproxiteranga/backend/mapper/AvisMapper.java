@@ -3,7 +3,6 @@ package sn.senproxiteranga.backend.mapper;
 import org.springframework.stereotype.Component;
 import sn.senproxiteranga.backend.domain.Avis;
 import sn.senproxiteranga.backend.domain.Demande;
-import sn.senproxiteranga.backend.domain.Professionnel;
 import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.dto.AvisProfessionnelResponse;
 import sn.senproxiteranga.backend.dto.AvisRequest;
@@ -32,7 +31,7 @@ public class AvisMapper {
      */
     public AvisResponse toResponse(Avis avis) {
         Demande demande = avis.getDemande();
-        Professionnel pro = avis.getProfessionnel();
+        Utilisateur pro = avis.getProfessionnel();
 
         return new AvisResponse(
                 avis.getId(),
@@ -54,7 +53,7 @@ public class AvisMapper {
     /**
      * Résumé pour la page du professionnel : moyenne, nombre d'avis et liste.
      */
-    public AvisProfessionnelResponse toProfessionnelResponse(Professionnel pro, double noteMoyenne,
+    public AvisProfessionnelResponse toProfessionnelResponse(Utilisateur pro, double noteMoyenne,
                                                              long nombreAvis, List<Avis> avis) {
         return new AvisProfessionnelResponse(
                 pro.getId(),

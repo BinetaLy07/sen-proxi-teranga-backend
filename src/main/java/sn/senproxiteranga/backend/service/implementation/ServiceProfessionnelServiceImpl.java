@@ -1,11 +1,14 @@
 package sn.senproxiteranga.backend.service.implementation;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import sn.senproxiteranga.backend.domain.Categorie;
-import sn.senproxiteranga.backend.domain.Professionnel;
 import sn.senproxiteranga.backend.domain.ServiceProfessionnel;
+import sn.senproxiteranga.backend.domain.Utilisateur;
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.TypeTarif;
 import sn.senproxiteranga.backend.dto.ServiceRequest;
@@ -14,8 +17,8 @@ import sn.senproxiteranga.backend.exception.BusinessException;
 import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.ServiceMapper;
 import sn.senproxiteranga.backend.repository.CategorieRepository;
-import sn.senproxiteranga.backend.repository.ProfessionnelRepository;
 import sn.senproxiteranga.backend.repository.ServiceProfessionnelRepository;
+import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.ServiceProfessionnelService;
 
 import java.util.List;
@@ -26,13 +29,13 @@ import java.util.List;
 public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelService {
 
     private final ServiceProfessionnelRepository serviceRepository;
-    private final ProfessionnelRepository professionnelRepository;
+    private final UtilisateurRepository utilisateurRepository;
     private final CategorieRepository categorieRepository;
     private final ServiceMapper serviceMapper;
 
     @Override
     public ServiceResponse creer(Long professionnelId, ServiceRequest request) {
-        Professionnel pro = chercherProfessionnelActif(professionnelId);
+        Utilisateur pro = chercherProfessionnelActif(professionnelId);
         verifierTarif(request);
         Categorie categorie = chercherCategorieActive(request.categorieId());
 
@@ -78,42 +81,59 @@ public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelServ
 
     @Override
     @Transactional(readOnly = true)
-    public List<ServiceResponse> listerParProfessionnel(Long professionnelId, boolean actifsSeulement) {
-        if (!professionnelRepository.existsById(professionnelId)) {
-            throw new ResourceNotFoundException("Professionnel introuvable : " + professionnelId);
+    public List<ServiceResponse> listerParProfessionnel(
+            Long professionnelId, boolean actifsSeulement) {
+        if (!utilisateurRepository.existsByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)) {
+            throw new ResourceNotFoundException("Utilisateur introuvable : " + professionnelId);
         }
-        List<ServiceProfessionnel> services = actifsSeulement
-                ? serviceRepository.findByProfessionnelIdAndActifTrueOrderByTitreAsc(professionnelId)
-                : serviceRepository.findByProfessionnelIdOrderByTitreAsc(professionnelId);
-        return services.stream()
-                .map(serviceMapper::toResponse)
-                .toList();
+        List<ServiceProfessionnel> services =
+                actifsSeulement
+                        ? serviceRepository.findByProfessionnelIdAndActifTrueOrderByTitreAsc(
+                                professionnelId)
+                        : serviceRepository.findByProfessionnelIdOrderByTitreAsc(professionnelId);
+        return services.stream().map(serviceMapper::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ServiceResponse trouverParId(Long serviceId) {
-        ServiceProfessionnel service = serviceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Service introuvable : " + serviceId));
+        ServiceProfessionnel service =
+                serviceRepository
+                        .findById(serviceId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Service introuvable : " + serviceId));
         return serviceMapper.toResponse(service);
     }
 
     // ---------- Méthodes internes ----------
 
     // Règle 1 : le professionnel doit exister et ne pas être suspendu
-    private Professionnel chercherProfessionnelActif(Long professionnelId) {
-        Professionnel pro = professionnelRepository.findById(professionnelId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professionnel introuvable : " + professionnelId));
+    private Utilisateur chercherProfessionnelActif(Long professionnelId) {
+        Utilisateur pro =
+                utilisateurRepository
+                        .findByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Utilisateur introuvable : " + professionnelId));
         if (pro.getStatutCompte() == StatutCompte.SUSPENDU) {
-            throw new BusinessException("Votre compte est suspendu : vous ne pouvez pas gérer vos services");
+            throw new BusinessException(
+                    "Votre compte est suspendu : vous ne pouvez pas gérer vos services");
         }
         return pro;
     }
 
     // Règle 2 : la catégorie doit exister et être active
     private Categorie chercherCategorieActive(Long categorieId) {
-        Categorie categorie = categorieRepository.findById(categorieId)
-                .orElseThrow(() -> new ResourceNotFoundException("Catégorie introuvable : " + categorieId));
+        Categorie categorie =
+                categorieRepository
+                        .findById(categorieId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Catégorie introuvable : " + categorieId));
         if (!categorie.isActive()) {
             throw new BusinessException("Cette catégorie n'est pas disponible");
         }
@@ -127,14 +147,20 @@ public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelServ
                 throw new BusinessException("Un service sur devis ne doit pas avoir de montant");
             }
         } else if (request.montant() == null) {
-            throw new BusinessException("Le montant est obligatoire pour un tarif fixe ou « à partir de »");
+            throw new BusinessException(
+                    "Le montant est obligatoire pour un tarif fixe ou « à partir de »");
         }
     }
 
     // Règle 4 : un professionnel ne peut toucher qu'à SES propres services
     private ServiceProfessionnel chercherServiceDuPro(Long professionnelId, Long serviceId) {
-        return serviceRepository.findByIdAndProfessionnelId(serviceId, professionnelId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Service " + serviceId + " introuvable pour ce professionnel"));
+        return serviceRepository
+                .findByIdAndProfessionnelId(serviceId, professionnelId)
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "Service "
+                                                + serviceId
+                                                + " introuvable pour ce professionnel"));
     }
 }

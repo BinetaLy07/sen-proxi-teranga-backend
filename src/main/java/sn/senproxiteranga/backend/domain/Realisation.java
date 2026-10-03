@@ -21,7 +21,7 @@ public class Realisation extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professionnel_id", nullable = false)
-    private Professionnel professionnel;
+    private Utilisateur professionnel;
 
     // Ex : "Salle de bain carrelée à Mermoz"
     @Column(nullable = false, length = 150)

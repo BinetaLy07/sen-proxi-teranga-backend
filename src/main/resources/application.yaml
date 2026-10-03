@@ -34,3 +34,11 @@ server:
 app:
   uploads:
     dossier: uploads            # dossier où sont rangés les fichiers envoyés
+
+security:
+  bootstrap-admin:
+    email: ${ADMIN_EMAIL:admin@senproxiteranga.sn}
+    telephone: ${ADMIN_TELEPHONE:770000000}
+    prenom: ${ADMIN_PRENOM:Admin}
+    nom: ${ADMIN_NOM:Teranga}
+    password: ${ADMIN_PASSWORD:}

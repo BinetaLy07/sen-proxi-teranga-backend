@@ -1,9 +1,8 @@
 package sn.senproxiteranga.backend.mapper;
 
 import org.springframework.stereotype.Component;
-import sn.senproxiteranga.backend.domain.Client;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Demande;
-import sn.senproxiteranga.backend.domain.Professionnel;
 import sn.senproxiteranga.backend.domain.RendezVous;
 import sn.senproxiteranga.backend.domain.enums.StatutRendezVous;
 import sn.senproxiteranga.backend.dto.RendezVousRequest;
@@ -29,8 +28,8 @@ public class RendezVousMapper {
      */
     public RendezVousResponse toResponse(RendezVous rendezVous) {
         Demande demande = rendezVous.getDemande();
-        Client client = demande.getClient();
-        Professionnel pro = demande.getProfessionnel();
+        Utilisateur client = demande.getClient();
+        Utilisateur pro = demande.getProfessionnel();
 
         return new RendezVousResponse(
                 rendezVous.getId(),

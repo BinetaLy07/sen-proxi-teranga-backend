@@ -1,5 +1,6 @@
 package sn.senproxiteranga.backend.service.implementation;
 
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,11 +16,10 @@ import sn.senproxiteranga.backend.dto.PaiementResponse;
 import sn.senproxiteranga.backend.exception.BusinessException;
 import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.PaiementMapper;
-import sn.senproxiteranga.backend.repository.ClientRepository;
+import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.DevisRepository;
 import sn.senproxiteranga.backend.repository.PaiementRepository;
-import sn.senproxiteranga.backend.repository.ProfessionnelRepository;
 import sn.senproxiteranga.backend.service.PaiementService;
 
 import java.time.LocalDateTime;
@@ -39,8 +39,7 @@ public class PaiementServiceImpl implements PaiementService {
     private final PaiementRepository paiementRepository;
     private final DemandeRepository demandeRepository;
     private final DevisRepository devisRepository;
-    private final ClientRepository clientRepository;
-    private final ProfessionnelRepository professionnelRepository;
+    private final UtilisateurRepository utilisateurRepository;
     private final PaiementMapper paiementMapper;
 
     // =====================================================================
@@ -66,7 +65,7 @@ public class PaiementServiceImpl implements PaiementService {
     @Override
     @Transactional(readOnly = true)
     public List<PaiementResponse> listerParClient(Long clientId) {
-        if (!clientRepository.existsById(clientId)) {
+        if (!utilisateurRepository.existsByIdAndRoleNom(clientId, NomRole.CLIENT)) {
             throw new ResourceNotFoundException("Client introuvable : " + clientId);
         }
         return paiementRepository.findByDemandeClientIdOrderByCreatedAtDesc(clientId).stream()
@@ -131,7 +130,7 @@ public class PaiementServiceImpl implements PaiementService {
     @Override
     @Transactional(readOnly = true)
     public List<PaiementResponse> listerParProfessionnel(Long professionnelId) {
-        if (!professionnelRepository.existsById(professionnelId)) {
+        if (!utilisateurRepository.existsByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)) {
             throw new ResourceNotFoundException("Professionnel introuvable : " + professionnelId);
         }
         return paiementRepository.findByDemandeProfessionnelIdOrderByCreatedAtDesc(professionnelId).stream()

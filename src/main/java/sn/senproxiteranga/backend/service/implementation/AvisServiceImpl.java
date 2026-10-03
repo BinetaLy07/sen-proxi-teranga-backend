@@ -1,11 +1,12 @@
 package sn.senproxiteranga.backend.service.implementation;
 
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.senproxiteranga.backend.domain.Avis;
 import sn.senproxiteranga.backend.domain.Demande;
-import sn.senproxiteranga.backend.domain.Professionnel;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.dto.AvisProfessionnelResponse;
 import sn.senproxiteranga.backend.dto.AvisRequest;
@@ -16,7 +17,7 @@ import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.AvisMapper;
 import sn.senproxiteranga.backend.repository.AvisRepository;
 import sn.senproxiteranga.backend.repository.DemandeRepository;
-import sn.senproxiteranga.backend.repository.ProfessionnelRepository;
+import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.AvisService;
 
 import java.time.LocalDateTime;
@@ -39,7 +40,7 @@ public class AvisServiceImpl implements AvisService {
 
     private final AvisRepository avisRepository;
     private final DemandeRepository demandeRepository;
-    private final ProfessionnelRepository professionnelRepository;
+    private final UtilisateurRepository utilisateurRepository;
     private final AvisMapper avisMapper;
 
     // =============== CLIENT ===============
@@ -108,7 +109,7 @@ public class AvisServiceImpl implements AvisService {
     @Override
     @Transactional(readOnly = true)
     public AvisProfessionnelResponse listerParProfessionnel(Long professionnelId) {
-        Professionnel pro = professionnelRepository.findById(professionnelId)
+        Utilisateur pro = utilisateurRepository.findByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Professionnel introuvable : " + professionnelId));
 
@@ -124,7 +125,7 @@ public class AvisServiceImpl implements AvisService {
      * Recalcule la note moyenne du professionnel, arrondie à 1 chiffre après la virgule.
      * Exemple : (5 + 4 + 5) / 3 = 4.666... -> 4.7
      */
-    private void mettreAJourNoteMoyenne(Professionnel pro) {
+    private void mettreAJourNoteMoyenne(Utilisateur pro) {
         Double moyenne = avisRepository.calculerMoyenne(pro.getId());
         double arrondie = (moyenne == null) ? 0.0 : Math.round(moyenne * 10) / 10.0;
         pro.setNoteMoyenne(arrondie);

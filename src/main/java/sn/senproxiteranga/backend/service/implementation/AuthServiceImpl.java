@@ -1,19 +1,25 @@
 package sn.senproxiteranga.backend.service.implementation;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.senproxiteranga.backend.domain.Client;
-import sn.senproxiteranga.backend.domain.Professionnel;
+
 import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Zone;
+import sn.senproxiteranga.backend.domain.enums.NomRole;
+import sn.senproxiteranga.backend.domain.enums.StatutCompte;
+import sn.senproxiteranga.backend.dto.CreationUtilisateurRequest;
 import sn.senproxiteranga.backend.dto.InscriptionClientRequest;
 import sn.senproxiteranga.backend.dto.InscriptionProfessionnelRequest;
+import sn.senproxiteranga.backend.dto.RegisterRequest;
 import sn.senproxiteranga.backend.dto.UtilisateurResponse;
 import sn.senproxiteranga.backend.exception.BusinessException;
 import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.UtilisateurMapper;
+import sn.senproxiteranga.backend.repository.AuthSessionRepository;
+import sn.senproxiteranga.backend.repository.RoleRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.ZoneRepository;
 import sn.senproxiteranga.backend.service.AuthService;
@@ -31,19 +37,143 @@ public class AuthServiceImpl implements AuthService {
     private final ZoneRepository zoneRepository;
     private final UtilisateurMapper utilisateurMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
+    private final AuthSessionRepository authSessionRepository;
+
+    @Override
+    public UtilisateurResponse changerStatutCompte(Long id, StatutCompte statutCompte) {
+        if (statutCompte == null) {
+            throw new BusinessException("Le statut du compte est obligatoire");
+        }
+        Utilisateur utilisateur =
+                utilisateurRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Utilisateur introuvable : " + id));
+        utilisateur.setStatutCompte(statutCompte);
+        if (statutCompte == StatutCompte.SUSPENDU) {
+            authSessionRepository
+                    .findByUtilisateurIdAndRevokedFalse(id)
+                    .forEach(session -> session.setRevoked(true));
+        }
+        return utilisateurMapper.toResponse(utilisateurRepository.save(utilisateur));
+    }
+
+    @Override
+    public UtilisateurResponse creerUtilisateur(CreationUtilisateurRequest request) {
+        if (request.role() != NomRole.ADMINISTRATEUR) {
+            return register(
+                    new RegisterRequest(
+                            request.prenom(),
+                            request.nom(),
+                            request.telephone(),
+                            request.email(),
+                            request.motDePasse(),
+                            request.cguAcceptees(),
+                            request.role(),
+                            request.adresse(),
+                            request.zoneId(),
+                            request.metier(),
+                            request.competences(),
+                            request.description(),
+                            request.whatsapp(),
+                            request.zoneIds()));
+        }
+
+        verifierCgu(request.cguAcceptees());
+        verifierEmailEtTelephoneLibres(request.email(), request.telephone());
+
+        Utilisateur utilisateur =
+                utilisateurMapper.toClient(
+                        new InscriptionClientRequest(
+                                request.prenom(),
+                                request.nom(),
+                                request.telephone(),
+                                request.email(),
+                                request.motDePasse(),
+                                request.cguAcceptees(),
+                                request.adresse(),
+                                request.zoneId()));
+        utilisateur.setRole(
+                roleRepository
+                        .findByNom(NomRole.ADMINISTRATEUR)
+                        .orElseThrow(
+                                () -> new IllegalStateException("Rôle ADMINISTRATEUR absent")));
+        utilisateur.setMotDePasseHache(passwordEncoder.encode(request.motDePasse()));
+        enregistrerAcceptationCgu(utilisateur);
+
+        if (request.zoneId() != null) {
+            utilisateur.setZone(
+                    zoneRepository
+                            .findById(request.zoneId())
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Zone introuvable : " + request.zoneId())));
+        }
+
+        return utilisateurMapper.toResponse(utilisateurRepository.save(utilisateur));
+    }
+
+    @Override
+    public UtilisateurResponse register(RegisterRequest request) {
+        if (request.role() == NomRole.CLIENT) {
+            return inscrireClient(
+                    new InscriptionClientRequest(
+                            request.prenom(),
+                            request.nom(),
+                            request.telephone(),
+                            request.email(),
+                            request.motDePasse(),
+                            request.cguAcceptees(),
+                            request.adresse(),
+                            request.zoneId()));
+        }
+        if (request.role() == NomRole.PROFESSIONNEL) {
+            if (request.metier() == null || request.metier().isBlank()) {
+                throw new BusinessException("Le métier est obligatoire pour un professionnel");
+            }
+            return inscrireProfessionnel(
+                    new InscriptionProfessionnelRequest(
+                            request.prenom(),
+                            request.nom(),
+                            request.telephone(),
+                            request.email(),
+                            request.motDePasse(),
+                            request.cguAcceptees(),
+                            request.metier(),
+                            request.competences(),
+                            request.description(),
+                            request.whatsapp(),
+                            request.zoneIds()));
+        }
+        throw new BusinessException(
+                "L'inscription publique accepte uniquement CLIENT ou PROFESSIONNEL");
+    }
 
     @Override
     public UtilisateurResponse inscrireClient(InscriptionClientRequest request) {
         verifierCgu(request.cguAcceptees());
         verifierEmailEtTelephoneLibres(request.email(), request.telephone());
 
-        Client client = utilisateurMapper.toClient(request);
+        Utilisateur client = utilisateurMapper.toClient(request);
+        client.setRole(
+                roleRepository
+                        .findByNom(NomRole.CLIENT)
+                        .orElseThrow(() -> new IllegalStateException("Rôle CLIENT absent")));
         client.setMotDePasseHache(passwordEncoder.encode(request.motDePasse()));
         enregistrerAcceptationCgu(client);
 
         if (request.zoneId() != null) {
-            Zone zone = zoneRepository.findById(request.zoneId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Zone introuvable : " + request.zoneId()));
+            Zone zone =
+                    zoneRepository
+                            .findById(request.zoneId())
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Zone introuvable : " + request.zoneId()));
             client.setZone(zone);
         }
 
@@ -55,7 +185,11 @@ public class AuthServiceImpl implements AuthService {
         verifierCgu(request.cguAcceptees());
         verifierEmailEtTelephoneLibres(request.email(), request.telephone());
 
-        Professionnel pro = utilisateurMapper.toProfessionnel(request);
+        Utilisateur pro = utilisateurMapper.toProfessionnel(request);
+        pro.setRole(
+                roleRepository
+                        .findByNom(NomRole.PROFESSIONNEL)
+                        .orElseThrow(() -> new IllegalStateException("Rôle PROFESSIONNEL absent")));
         pro.setMotDePasseHache(passwordEncoder.encode(request.motDePasse()));
         enregistrerAcceptationCgu(pro);
 

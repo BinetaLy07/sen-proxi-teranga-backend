@@ -2,7 +2,7 @@ package sn.senproxiteranga.backend.mapper;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import sn.senproxiteranga.backend.domain.Professionnel;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Realisation;
 import sn.senproxiteranga.backend.dto.RealisationResponse;
 
@@ -13,7 +13,7 @@ public class RealisationMapper {
      * Nouvelle réalisation à partir de la photo envoyée.
      * Le content type et le nom stocké sont décidés par le service (après vérification).
      */
-    public Realisation toEntity(Professionnel pro, MultipartFile fichier, String titre,
+    public Realisation toEntity(Utilisateur pro, MultipartFile fichier, String titre,
                                 String description, String contentType, String nomStocke) {
         Realisation realisation = new Realisation();
         realisation.setProfessionnel(pro);

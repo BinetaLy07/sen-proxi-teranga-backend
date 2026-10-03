@@ -1,0 +1,2013 @@
+{
+  "info": {
+    "_postman_id": "1d385c94-0028-41bc-b8a0-b0c4728f44ad",
+    "name": "Sen Proxi Teranga — Sécurité",
+    "description": "Inscription, connexion, rotation des tokens, sessions, administration et tests 401/403. Exécuter les dossiers dans l’ordre. Le dossier 03 exige un administrateur existant ; il peut être omis pour tester seulement client/professionnel. Les variables de tokens sont enregistrées automatiquement dans la collection. Voir README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "clientPassword",
+      "value": "TestPostman123!",
+      "type": "string"
+    },
+    {
+      "key": "professionnelPassword",
+      "value": "TestPostman123!",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminPassword",
+      "value": "TestPostman123!",
+      "type": "string"
+    },
+    {
+      "key": "clientEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientTelephone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clientRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelTelephone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminTelephone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminTelephone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdAdminRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oldClientAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oldClientRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "professionnelSessionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Inscription et connexion",
+      "item": [
+        {
+          "name": "Créer un client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Crée un nouveau compte de test et génère un email et un téléphone à chaque exécution. Aucun token requis.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prenom\": \"Awa\",\n  \"nom\": \"Postman\",\n  \"telephone\": \"{{clientTelephone}}\",\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\",\n  \"cguAcceptees\": true,\n  \"role\": \"CLIENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString() + Math.floor(Math.random() * 100000).toString();",
+                  "pm.collectionVariables.set(\"clientEmail\", \"postman.client.\" + suffix + \"@example.com\");",
+                  "pm.collectionVariables.set(\"clientTelephone\", \"77\" + Math.floor(1000000 + Math.random() * 9000000).toString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.id));",
+                  "    pm.test(\"Compte actif et rôle correct\", () => {",
+                  "        pm.expect(data.statutCompte).to.eql(\"ACTIF\");",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data).not.to.have.property(\"motDePasseHache\");",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Créer un professionnel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Crée un nouveau compte de test et génère un email et un téléphone à chaque exécution. Aucun token requis.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prenom\": \"Moussa\",\n  \"nom\": \"Postman\",\n  \"telephone\": \"{{professionnelTelephone}}\",\n  \"email\": \"{{professionnelEmail}}\",\n  \"motDePasse\": \"{{professionnelPassword}}\",\n  \"cguAcceptees\": true,\n  \"role\": \"PROFESSIONNEL\",\n  \"metier\": \"Plombier\",\n  \"description\": \"Compte de test Postman\",\n  \"zoneIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString() + Math.floor(Math.random() * 100000).toString();",
+                  "pm.collectionVariables.set(\"professionnelEmail\", \"postman.professionnel.\" + suffix + \"@example.com\");",
+                  "pm.collectionVariables.set(\"professionnelTelephone\", \"77\" + Math.floor(1000000 + Math.random() * 9000000).toString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"professionnelId\", String(data.id));",
+                  "    pm.test(\"Compte actif et rôle correct\", () => {",
+                  "        pm.expect(data.statutCompte).to.eql(\"ACTIF\");",
+                  "        pm.expect(data.role).to.eql(\"PROFESSIONNEL\");",
+                  "        pm.expect(data).not.to.have.property(\"motDePasseHache\");",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"clientAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"clientRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion professionnel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{professionnelEmail}}\",\n  \"motDePasse\": \"{{professionnelPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"PROFESSIONNEL\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"professionnelAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"professionnelRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"professionnelId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lister les sessions professionnel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{professionnelAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Liste des sessions\", () => pm.expect(data).to.be.an(\"array\"));",
+                  "    const current = data.find(session => session.current);",
+                  "    pm.test(\"Session courante présente\", () => pm.expect(current).to.be.an(\"object\"));",
+                  "    if (current) pm.collectionVariables.set(\"professionnelSessionId\", String(current.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Renouvellement et contrôles",
+      "item": [
+        {
+          "name": "Renouveler les tokens client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"oldClientAccessToken\", pm.collectionVariables.get(\"clientAccessToken\"));",
+                  "pm.collectionVariables.set(\"oldClientRefreshToken\", pm.collectionVariables.get(\"clientRefreshToken\"));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"clientAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"clientRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.utilisateurId));",
+                  "}",
+                  "pm.test(\"Rotation des deux tokens\", () => {",
+                  "    if (pm.response.code === 200) {",
+                  "        const data = pm.response.json();",
+                  "        pm.expect(data.accessToken).not.to.eql(pm.collectionVariables.get(\"oldClientAccessToken\"));",
+                  "        pm.expect(data.refreshToken).not.to.eql(pm.collectionVariables.get(\"oldClientRefreshToken\"));",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ancien access token refusé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{oldClientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ancien refresh token refusé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{oldClientRefreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sessions sans authentification refusées",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mauvais mot de passe refusé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"MotDePasseIncorrect!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscription publique administrateur refusée",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prenom\": \"Test\",\n  \"nom\": \"Admin\",\n  \"telephone\": \"{{clientTelephone}}\",\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\",\n  \"cguAcceptees\": true,\n  \"role\": \"ADMINISTRATEUR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Client ne peut pas suspendre",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/utilisateurs/{{clientId}}/statut-compte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "utilisateurs",
+                "{{clientId}}",
+                "statut-compte"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statutCompte\": \"SUSPENDU\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Professionnel ne peut pas suspendre",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/utilisateurs/{{clientId}}/statut-compte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "utilisateurs",
+                "{{clientId}}",
+                "statut-compte"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{professionnelAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statutCompte\": \"SUSPENDU\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Administration (premier admin requis)",
+      "description": "Renseigner adminEmail et adminPassword dans l’environnement. Ce dossier crée un administrateur de test et suspend/réactive uniquement le client créé dans le dossier 01.",
+      "item": [
+        {
+          "name": "Connexion administrateur existant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"motDePasse\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"ADMINISTRATEUR\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"adminAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"adminRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"adminId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Créer un administrateur",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/utilisateurs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "utilisateurs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prenom\": \"Admin\",\n  \"nom\": \"Postman\",\n  \"telephone\": \"{{createdAdminTelephone}}\",\n  \"email\": \"{{createdAdminEmail}}\",\n  \"motDePasse\": \"{{createdAdminPassword}}\",\n  \"cguAcceptees\": true,\n  \"role\": \"ADMINISTRATEUR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString() + Math.floor(Math.random() * 100000).toString();",
+                  "pm.collectionVariables.set(\"createdAdminEmail\", \"postman.admin.\" + suffix + \"@example.com\");",
+                  "pm.collectionVariables.set(\"createdAdminTelephone\", \"78\" + Math.floor(1000000 + Math.random() * 9000000).toString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set(\"createdAdminId\", String(data.id));",
+                  "    pm.test(\"Nouvel administrateur actif\", () => {",
+                  "        pm.expect(data.role).to.eql(\"ADMINISTRATEUR\");",
+                  "        pm.expect(data.statutCompte).to.eql(\"ACTIF\");",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspendre le client de test",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/utilisateurs/{{clientId}}/statut-compte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "utilisateurs",
+                "{{clientId}}",
+                "statut-compte"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statutCompte\": \"SUSPENDU\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Statut suspendu\", () => pm.expect(pm.response.json().statutCompte).to.eql(\"SUSPENDU\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compte suspendu — connexion refusée",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compte suspendu — token refusé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compte suspendu — refresh refusé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Réactiver le client de test",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/utilisateurs/{{clientId}}/statut-compte",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "utilisateurs",
+                "{{clientId}}",
+                "statut-compte"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statutCompte\": \"ACTIF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Statut actif\", () => pm.expect(pm.response.json().statutCompte).to.eql(\"ACTIF\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Après réactivation — ancien token toujours refusé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reconnecter le client réactivé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"clientAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"clientRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 — Sessions et déconnexion",
+      "description": "Exécuter dans l’ordre après la connexion client. La suppression de session vise ici la session courante.",
+      "item": [
+        {
+          "name": "Lister les sessions client",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Liste des sessions\", () => pm.expect(data).to.be.an(\"array\"));",
+                  "    const current = data.find(session => session.current);",
+                  "    pm.test(\"Session courante présente\", () => pm.expect(current).to.be.an(\"object\"));",
+                  "    if (current) pm.collectionVariables.set(\"sessionId\", String(current.id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Client ne peut pas révoquer une session professionnel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions/{{professionnelSessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "{{professionnelSessionId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"professionnelSessionId\")) {",
+                  "    throw new Error(\"Exécuter d’abord Lister les sessions professionnel.\");",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Révoquer la session client courante",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Session révoquée — access token refusé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Session révoquée — refresh refusé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reconnecter avant déconnexion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"clientAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"clientRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Déconnecter le client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/deconnexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "deconnexion"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Après déconnexion — token refusé",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sessions"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reconnecter avant déconnexion globale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/connexion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "connexion"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"motDePasse\": \"{{clientPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Tokens et rôle\", () => {",
+                  "        pm.expect(data.accessToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.role).to.eql(\"CLIENT\");",
+                  "        pm.expect(data.tokenType).to.eql(\"Bearer\");",
+                  "    });",
+                  "    pm.collectionVariables.set(\"clientAccessToken\", data.accessToken);",
+                  "    pm.collectionVariables.set(\"clientRefreshToken\", data.refreshToken);",
+                  "    pm.collectionVariables.set(\"clientId\", String(data.utilisateurId));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Déconnecter toutes les sessions client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/deconnexion-toutes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "deconnexion-toutes"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{clientAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Après déconnexion globale — refresh refusé",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,9 +1,11 @@
 package sn.senproxiteranga.backend.domain;
 
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 
 import java.time.LocalDate;
@@ -58,12 +60,12 @@ public class Demande extends BaseEntity {
     // Le client qui a créé la demande
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
+    private Utilisateur client;
 
     // Le professionnel qui doit la traiter
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professionnel_id", nullable = false)
-    private Professionnel professionnel;
+    private Utilisateur professionnel;
 
     // Le service demandé
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

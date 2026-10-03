@@ -1,10 +1,10 @@
 package sn.senproxiteranga.backend.mapper;
 
 import org.springframework.stereotype.Component;
-import sn.senproxiteranga.backend.domain.Client;
+
 import sn.senproxiteranga.backend.domain.Demande;
-import sn.senproxiteranga.backend.domain.Professionnel;
 import sn.senproxiteranga.backend.domain.ServiceProfessionnel;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Zone;
 import sn.senproxiteranga.backend.dto.DemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
@@ -32,8 +32,8 @@ public class DemandeMapper {
 
     // Demande de la base -> réponse envoyée à Angular
     public DemandeResponse toResponse(Demande demande) {
-        Client client = demande.getClient();
-        Professionnel pro = demande.getProfessionnel();
+        Utilisateur client = demande.getClient();
+        Utilisateur pro = demande.getProfessionnel();
         ServiceProfessionnel service = demande.getService();
         Zone zone = demande.getZone();
 
@@ -55,17 +55,13 @@ public class DemandeMapper {
                 client.getId(),
                 client.getPrenom() + " " + client.getNom(),
                 client.getTelephone(),
-
                 pro.getId(),
                 pro.getPrenom() + " " + pro.getNom(),
-
                 service.getId(),
                 service.getTitre(),
                 service.getTypeTarif(),
                 service.getMontant(),
-
                 zone != null ? zone.getId() : null,
-                zone != null ? zone.getNom() : null
-        );
+                zone != null ? zone.getNom() : null);
     }
 }

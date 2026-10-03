@@ -1,11 +1,12 @@
 package sn.senproxiteranga.backend.service.implementation;
 
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import sn.senproxiteranga.backend.domain.Professionnel;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Realisation;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
@@ -22,9 +23,9 @@ import sn.senproxiteranga.backend.mapper.ProfessionnelMapper;
 import sn.senproxiteranga.backend.mapper.RealisationMapper;
 import sn.senproxiteranga.backend.mapper.ServiceMapper;
 import sn.senproxiteranga.backend.repository.AvisRepository;
-import sn.senproxiteranga.backend.repository.ProfessionnelRepository;
+import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.RealisationRepository;
-import sn.senproxiteranga.backend.repository.ServiceProfessionnelRepository;
+import sn.senproxiteranga.backend.repository.ServiceUtilisateurRepository;
 import sn.senproxiteranga.backend.service.ProfessionnelService;
 import sn.senproxiteranga.backend.service.StockageFichierService;
 
@@ -46,8 +47,8 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
             "image/png", "png"
     );
 
-    private final ProfessionnelRepository professionnelRepository;
-    private final ServiceProfessionnelRepository serviceRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final ServiceUtilisateurRepository serviceRepository;
     private final AvisRepository avisRepository;
     private final RealisationRepository realisationRepository;
     private final StockageFichierService stockageService;
@@ -63,7 +64,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     @Override
     @Transactional(readOnly = true)
     public List<ProfessionnelResumeResponse> rechercher(String metier, Long zoneId, Long categorieId) {
-        return professionnelRepository.rechercher(
+        return utilisateurRepository.rechercher(
                         nettoyer(metier),
                         zoneId,
                         categorieId,
@@ -78,7 +79,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     @Override
     @Transactional(readOnly = true)
     public ProfilProfessionnelResponse profilPublic(Long professionnelId) {
-        Professionnel pro = chercherPro(professionnelId);
+        Utilisateur pro = chercherPro(professionnelId);
 
         // Règle 1 : un pro non validé ou suspendu n'est pas visible du public
         if (pro.getStatutVerification() != StatutVerification.VALIDE
@@ -100,14 +101,14 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
 
     @Override
     public ProfilProfessionnelResponse modifierProfil(Long professionnelId, ModifierProfilRequest request) {
-        Professionnel pro = chercherPro(professionnelId);
+        Utilisateur pro = chercherPro(professionnelId);
         professionnelMapper.modifierProfil(pro, request);
         return construireProfil(pro);
     }
 
     @Override
     public ProfilProfessionnelResponse changerPhoto(Long professionnelId, MultipartFile photo) {
-        Professionnel pro = chercherPro(professionnelId);
+        Utilisateur pro = chercherPro(professionnelId);
         String extension = verifierImage(photo);                           // Règle 2
 
         String anciennePhoto = pro.getPhoto();
@@ -123,7 +124,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     @Override
     public RealisationResponse ajouterRealisation(Long professionnelId, MultipartFile photo,
                                                   String titre, String description) {
-        Professionnel pro = chercherPro(professionnelId);
+        Utilisateur pro = chercherPro(professionnelId);
 
         // Règle 3 : un titre obligatoire et des tailles raisonnables
         if (titre == null || titre.isBlank()) {
@@ -168,7 +169,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     @Override
     @Transactional(readOnly = true)
     public FichierImage chargerPhoto(Long professionnelId) {
-        Professionnel pro = chercherPro(professionnelId);
+        Utilisateur pro = chercherPro(professionnelId);
         if (pro.getPhoto() == null) {
             throw new ResourceNotFoundException("Ce professionnel n'a pas de photo de profil");
         }
@@ -193,7 +194,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
      * Rassemble tout le profil : services actifs, avis, réalisations.
      * On réutilise les mappers des autres modules.
      */
-    private ProfilProfessionnelResponse construireProfil(Professionnel pro) {
+    private ProfilProfessionnelResponse construireProfil(Utilisateur pro) {
         Long id = pro.getId();
 
         List<ServiceResponse> services = serviceRepository
@@ -236,7 +237,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     }
 
     private Professionnel chercherPro(Long professionnelId) {
-        return professionnelRepository.findById(professionnelId)
+        return utilisateurRepository.findByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)
                 .orElseThrow(() -> new ResourceNotFoundException("Professionnel introuvable : " + professionnelId));
     }
 

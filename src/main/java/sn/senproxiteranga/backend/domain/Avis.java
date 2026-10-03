@@ -27,7 +27,7 @@ public class Avis extends BaseEntity {
     // Le professionnel noté (copié de la demande pour retrouver vite tous ses avis)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professionnel_id", nullable = false)
-    private Professionnel professionnel;
+    private Utilisateur professionnel;
 
     // Note de 1 à 5 étoiles
     @Column(nullable = false)

@@ -1,21 +1,29 @@
 package sn.senproxiteranga.backend.domain;
 
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
+import sn.senproxiteranga.backend.domain.enums.StatutVerification;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
 @Table(name = "utilisateurs")
-@Inheritance(strategy = InheritanceType.JOINED)
-@DiscriminatorColumn(name = "role", discriminatorType = DiscriminatorType.STRING, length = 20)
-public abstract class Utilisateur extends BaseEntity {
+public class Utilisateur extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @Column(nullable = false, length = 100)
     private String prenom;
@@ -43,4 +51,50 @@ public abstract class Utilisateur extends BaseEntity {
 
     @Column(name = "date_acceptation_cgu")
     private LocalDateTime dateAcceptationCgu;
+
+    @Column(length = 255)
+    private String adresse;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "zone_id")
+    private Zone zone;
+
+    @Column(length = 100)
+    private String metier;
+
+    @Column(columnDefinition = "TEXT")
+    private String competences;
+
+    @Column
+    private Integer experience;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(length = 20)
+    private String whatsapp;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut_verification", length = 30)
+    private StatutVerification statutVerification;
+
+    @Column(name = "alerte_sms_active", nullable = false)
+    private boolean alerteSmsActive;
+
+    @Column(name = "note_moyenne", nullable = false)
+    private double noteMoyenne;
+
+    @ManyToMany
+    @JoinTable(
+            name = "utilisateur_zones",
+            joinColumns = @JoinColumn(name = "utilisateur_id"),
+            inverseJoinColumns = @JoinColumn(name = "zone_id"))
+    private Set<Zone> zones = new HashSet<>();
+
+    @Column(name = "dernier_acces")
+    private LocalDateTime dernierAcces;
+
+    public boolean aRole(NomRole nomRole) {
+        return role != null && role.getNom() == nomRole;
+    }
 }

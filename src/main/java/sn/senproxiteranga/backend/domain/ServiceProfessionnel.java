@@ -1,9 +1,11 @@
 package sn.senproxiteranga.backend.domain;
 
 import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import sn.senproxiteranga.backend.domain.enums.TypeTarif;
 
 @Getter
@@ -32,7 +34,7 @@ public class ServiceProfessionnel extends BaseEntity {
     // Le professionnel qui propose ce service
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professionnel_id", nullable = false)
-    private Professionnel professionnel;
+    private Utilisateur professionnel;
 
     // La catégorie du service (ex : Plomberie)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

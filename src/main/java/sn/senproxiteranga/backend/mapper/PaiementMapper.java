@@ -1,10 +1,9 @@
 package sn.senproxiteranga.backend.mapper;
 
 import org.springframework.stereotype.Component;
-import sn.senproxiteranga.backend.domain.Client;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.Paiement;
-import sn.senproxiteranga.backend.domain.Professionnel;
 import sn.senproxiteranga.backend.domain.enums.ModePaiement;
 import sn.senproxiteranga.backend.dto.PaiementResponse;
 
@@ -29,8 +28,8 @@ public class PaiementMapper {
      */
     public PaiementResponse toResponse(Paiement paiement) {
         Demande demande = paiement.getDemande();
-        Client client = demande.getClient();
-        Professionnel pro = demande.getProfessionnel();
+        Utilisateur client = demande.getClient();
+        Utilisateur pro = demande.getProfessionnel();
 
         return new PaiementResponse(
                 paiement.getId(),

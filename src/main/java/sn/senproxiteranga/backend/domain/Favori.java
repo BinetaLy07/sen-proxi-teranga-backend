@@ -25,9 +25,9 @@ public class Favori extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
+    private Utilisateur client;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "professionnel_id", nullable = false)
-    private Professionnel professionnel;
+    private Utilisateur professionnel;
 }
