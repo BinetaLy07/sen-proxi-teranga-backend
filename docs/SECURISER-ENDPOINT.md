@@ -61,7 +61,7 @@ Pour une route contenant un identifiant de ressource, charger la ressource et co
 
 Les URL actuelles `/api/clients/**`, `/api/professionnels/**` et `/api/demandes/**` passent par `EndpointAccess` : identité du client/professionnel ou participation à la demande, avec accès administrateur. Vérifier aussi dans le service qu'une ressource imbriquée appartient à l'utilisateur de l'URL. Par exemple, un `clientId` correct ne prouve pas qu'un `demandeId` fourni appartient à ce client.
 
-`EndpointAccess` reçoit la méthode HTTP mais ne la distingue pas actuellement. Une nouvelle action exigeant un rôle particulier doit avoir une règle plus précise avant ces matchers, ou un contrôle de méthode/service complémentaire. Ne pas supposer que ce composant connaît automatiquement les permissions d'une nouvelle action.
+`EndpointAccess` distingue GET pour les fichiers `/api/medias/{id}/fichier`, réservés aux participants de la demande ou à l’administrateur. Pour les autres familles de chemins existantes, il ne distingue pas encore les méthodes HTTP. Une nouvelle action exigeant un rôle particulier doit avoir une règle plus précise avant ces matchers, ou un contrôle de méthode/service complémentaire. Ne pas supposer que ce composant connaît automatiquement les permissions d'une nouvelle action.
 
 ## 4. Valider les entrées et les transitions
 

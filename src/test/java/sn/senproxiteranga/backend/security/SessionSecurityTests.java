@@ -78,7 +78,7 @@ class SessionSecurityTests {
     @Test
     void endpointsRejectOtherAccountsAndUnrelatedDemandes() {
         DemandeRepository demandes = mock(DemandeRepository.class);
-        EndpointAccess access = new EndpointAccess(demandes);
+        EndpointAccess access = new EndpointAccess(demandes, mock(MediaDemandeRepository.class));
         var auth =
                 new UsernamePasswordAuthenticationToken(
                         new SessionPrincipal(10L, 1L, "CLIENT"), null);
@@ -87,5 +87,28 @@ class SessionSecurityTests {
         assertFalse(access.allowed(auth, "/api/professionnels/10/demandes", "GET"));
         when(demandes.findById(4L)).thenReturn(Optional.empty());
         assertFalse(access.allowed(auth, "/api/demandes/4/devis", "GET"));
+    }
+
+    @Test
+    void mediaFilesAreRestrictedToDemandParticipants() {
+        MediaDemandeRepository medias = mock(MediaDemandeRepository.class);
+        EndpointAccess access = new EndpointAccess(mock(DemandeRepository.class), medias);
+        Utilisateur client = new Utilisateur();
+        client.setId(10L);
+        Utilisateur pro = new Utilisateur();
+        pro.setId(20L);
+        Demande demande = new Demande();
+        demande.setClient(client);
+        demande.setProfessionnel(pro);
+        MediaDemande media = new MediaDemande();
+        media.setDemande(demande);
+        when(medias.findById(3L)).thenReturn(Optional.of(media));
+        for (long userId : new long[] {10L, 20L, 30L}) {
+            var auth = new UsernamePasswordAuthenticationToken(
+                    new SessionPrincipal(userId, 1L, "CLIENT"), null);
+            assertEquals(userId != 30L,
+                    access.allowed(auth, "/api/medias/3/fichier", "GET"));
+            assertFalse(access.allowed(auth, "/api/medias/3/fichier", "POST"));
+        }
     }
 }

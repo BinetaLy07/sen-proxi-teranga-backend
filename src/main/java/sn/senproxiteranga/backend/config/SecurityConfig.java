@@ -66,6 +66,7 @@ public class SecurityConfig {
                                         .requestMatchers(
                                                 "/api/clients/**",
                                                 "/api/professionnels/**",
+                                                "/api/medias/**",
                                                 "/api/demandes/**")
                                         .access(
                                                 (auth, ctx) ->

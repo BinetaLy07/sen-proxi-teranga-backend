@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * Photos et vidéos jointes aux demandes.
- * Temporaire : l'id du client est dans l'URL, il sera remplacé par le token JWT.
+ * L'identité du client et l'accès aux fichiers sont vérifiés par la session Bearer.
  */
 @RestController
 @RequestMapping("/api")
