@@ -16,5 +16,21 @@ spring:
       hibernate:
         format_sql: true
 
+  # Envoi de fichiers (photos et vidéos des demandes)
+  servlet:
+    multipart:
+      max-file-size: 20MB       # taille maximale d'UN fichier
+      max-request-size: 100MB   # taille maximale d'UN envoi (5 fichiers x 20 Mo)
+
 server:
   port: 8080
+  tomcat:
+    # Quand un fichier est refusé (trop gros), Tomcat "avale" la suite de l'envoi
+    # pour pouvoir répondre proprement avec notre message d'erreur.
+    # Par défaut il n'avale que 2 Mo puis coupe la connexion.
+    max-swallow-size: 100MB
+
+# Paramètres propres à notre application
+app:
+  uploads:
+    dossier: uploads            # dossier où sont rangés les fichiers envoyés

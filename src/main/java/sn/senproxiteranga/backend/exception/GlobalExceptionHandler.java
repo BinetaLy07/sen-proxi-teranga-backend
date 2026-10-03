@@ -7,6 +7,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -45,6 +47,24 @@ public class GlobalExceptionHandler {
                                                        HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST,
                 "Requête invalide : vérifiez le format des données envoyées (dates, nombres, valeurs autorisées)",
+                request, null);
+    }
+
+    // 413 : fichier plus gros que la limite fixée dans application.yaml (20 Mo)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleFichierTropGros(MaxUploadSizeExceededException ex,
+                                                          HttpServletRequest request) {
+        return build(HttpStatus.CONTENT_TOO_LARGE,
+                "Fichier trop volumineux : 20 Mo maximum par fichier",
+                request, null);
+    }
+
+    // 400 : envoi sans le champ "fichiers"
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> handleFichierManquant(MissingServletRequestPartException ex,
+                                                          HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST,
+                "Aucun fichier envoyé : le champ '" + ex.getRequestPartName() + "' est obligatoire",
                 request, null);
     }
 
