@@ -1,0 +1,214 @@
+package sn.senproxiteranga.backend.service.implementation;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import sn.senproxiteranga.backend.domain.Demande;
+import sn.senproxiteranga.backend.domain.Devis;
+import sn.senproxiteranga.backend.domain.Paiement;
+import sn.senproxiteranga.backend.domain.enums.ModePaiement;
+import sn.senproxiteranga.backend.domain.enums.StatutDemande;
+import sn.senproxiteranga.backend.domain.enums.StatutDevis;
+import sn.senproxiteranga.backend.domain.enums.StatutPaiement;
+import sn.senproxiteranga.backend.dto.PaiementRequest;
+import sn.senproxiteranga.backend.dto.PaiementResponse;
+import sn.senproxiteranga.backend.exception.BusinessException;
+import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
+import sn.senproxiteranga.backend.mapper.PaiementMapper;
+import sn.senproxiteranga.backend.repository.ClientRepository;
+import sn.senproxiteranga.backend.repository.DemandeRepository;
+import sn.senproxiteranga.backend.repository.DevisRepository;
+import sn.senproxiteranga.backend.repository.PaiementRepository;
+import sn.senproxiteranga.backend.repository.ProfessionnelRepository;
+import sn.senproxiteranga.backend.service.PaiementService;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class PaiementServiceImpl implements PaiementService {
+
+    // Règle du cahier des charges : le pro a 72 h pour confirmer le paiement
+    private static final int DELAI_CONFIRMATION_HEURES = 72;
+
+    // Taille maximale de la colonne "motif_contestation"
+    private static final int TAILLE_MAX_MOTIF = 500;
+
+    private final PaiementRepository paiementRepository;
+    private final DemandeRepository demandeRepository;
+    private final DevisRepository devisRepository;
+    private final ClientRepository clientRepository;
+    private final ProfessionnelRepository professionnelRepository;
+    private final PaiementMapper paiementMapper;
+
+    // =====================================================================
+    //                              CLIENT
+    // =====================================================================
+
+    @Override
+    public PaiementResponse declarer(Long clientId, Long demandeId, PaiementRequest request) {
+        Demande demande = chercherDemandeDuClient(clientId, demandeId);
+        verifierPayable(demande);                                          // Règles 1 et 2
+
+        Double montant = montantDuDevisAccepte(demandeId);                  // Règle 3
+        Paiement paiement = paiementMapper.toEntity(
+                demande, montant, request.modePaiement(), request.reference());
+
+        // Règle 4 : le pro a 72 h pour confirmer
+        paiement.setStatut(StatutPaiement.DECLARE);
+        paiement.setDateLimiteConfirmation(LocalDateTime.now().plusHours(DELAI_CONFIRMATION_HEURES));
+
+        return paiementMapper.toResponse(paiementRepository.save(paiement));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaiementResponse> listerParClient(Long clientId) {
+        if (!clientRepository.existsById(clientId)) {
+            throw new ResourceNotFoundException("Client introuvable : " + clientId);
+        }
+        return paiementRepository.findByDemandeClientIdOrderByCreatedAtDesc(clientId).stream()
+                .map(paiementMapper::toResponse)
+                .toList();
+    }
+
+    // =====================================================================
+    //                           PROFESSIONNEL
+    // =====================================================================
+
+    @Override
+    public PaiementResponse confirmer(Long professionnelId, Long demandeId) {
+        Demande demande = chercherDemandeDuPro(professionnelId, demandeId);
+        Paiement paiement = chercherPaiement(demandeId);
+        verifierEnAttente(paiement);                                        // Règle 5
+
+        paiement.setStatut(StatutPaiement.CONFIRME);
+        paiement.setDateReponse(LocalDateTime.now());
+
+        // Paiement confirmé => dossier terminé
+        demande.setStatut(StatutDemande.CLOTUREE);
+
+        return paiementMapper.toResponse(paiement);
+    }
+
+    @Override
+    public PaiementResponse contester(Long professionnelId, Long demandeId, String motif) {
+        Demande demande = chercherDemandeDuPro(professionnelId, demandeId);
+        Paiement paiement = chercherPaiement(demandeId);
+        verifierEnAttente(paiement);                                        // Règle 5
+
+        paiement.setStatut(StatutPaiement.CONTESTE);
+        paiement.setMotifContestation(limiter(motif.trim()));
+        paiement.setDateReponse(LocalDateTime.now());
+
+        // Désaccord sur le paiement => litige (traité par l'administrateur)
+        demande.setStatut(StatutDemande.EN_LITIGE);
+
+        return paiementMapper.toResponse(paiement);
+    }
+
+    @Override
+    public PaiementResponse enregistrerEspeces(Long professionnelId, Long demandeId) {
+        Demande demande = chercherDemandeDuPro(professionnelId, demandeId);
+        verifierPayable(demande);                                          // Règles 1 et 2
+
+        Double montant = montantDuDevisAccepte(demandeId);                  // Règle 3
+        Paiement paiement = paiementMapper.toEntity(demande, montant, ModePaiement.ESPECES, null);
+
+        // Règle 6 : c'est le pro qui a reçu l'argent, pas besoin de confirmation
+        LocalDateTime maintenant = LocalDateTime.now();
+        paiement.setStatut(StatutPaiement.CONFIRME);
+        paiement.setDateLimiteConfirmation(maintenant);
+        paiement.setDateReponse(maintenant);
+
+        demande.setStatut(StatutDemande.CLOTUREE);
+
+        return paiementMapper.toResponse(paiementRepository.save(paiement));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaiementResponse> listerParProfessionnel(Long professionnelId) {
+        if (!professionnelRepository.existsById(professionnelId)) {
+            throw new ResourceNotFoundException("Professionnel introuvable : " + professionnelId);
+        }
+        return paiementRepository.findByDemandeProfessionnelIdOrderByCreatedAtDesc(professionnelId).stream()
+                .map(paiementMapper::toResponse)
+                .toList();
+    }
+
+    // =====================================================================
+    //                            CONSULTATION
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaiementResponse trouverParDemande(Long demandeId) {
+        if (!demandeRepository.existsById(demandeId)) {
+            throw new ResourceNotFoundException("Demande introuvable : " + demandeId);
+        }
+        return paiementMapper.toResponse(chercherPaiement(demandeId));
+    }
+
+    // =====================================================================
+    //                     MÉTHODES INTERNES (règles)
+    // =====================================================================
+
+    /**
+     * Règle 1 : on paie seulement des travaux dont le client a confirmé la fin.
+     * Règle 2 : une demande n'est payée qu'une seule fois.
+     */
+    private void verifierPayable(Demande demande) {
+        if (demande.getStatut() != StatutDemande.CONFIRMEE) {
+            throw new BusinessException(
+                    "Le paiement n'est possible qu'après la confirmation de fin des travaux (statut actuel : "
+                            + demande.getStatut() + ")");
+        }
+        if (paiementRepository.existsByDemandeId(demande.getId())) {
+            throw new BusinessException("Un paiement a déjà été enregistré pour cette demande");
+        }
+    }
+
+    /**
+     * Règle 3 : le montant est celui du devis accepté, jamais saisi par quelqu'un.
+     */
+    private Double montantDuDevisAccepte(Long demandeId) {
+        return devisRepository.findFirstByDemandeIdOrderByNumeroVersionDesc(demandeId)
+                .filter(devis -> devis.getStatut() == StatutDevis.ACCEPTE)
+                .map(Devis::getMontantTotal)
+                .orElseThrow(() -> new BusinessException(
+                        "Aucun devis accepté pour cette demande : impossible de calculer le montant"));
+    }
+
+    // Règle 5 : le pro ne répond qu'à un paiement en attente (DECLARE)
+    private void verifierEnAttente(Paiement paiement) {
+        if (paiement.getStatut() != StatutPaiement.DECLARE) {
+            throw new BusinessException(
+                    "Ce paiement a déjà été traité (statut : " + paiement.getStatut() + ")");
+        }
+    }
+
+    private String limiter(String motif) {
+        return motif.length() > TAILLE_MAX_MOTIF ? motif.substring(0, TAILLE_MAX_MOTIF) : motif;
+    }
+
+    private Paiement chercherPaiement(Long demandeId) {
+        return paiementRepository.findByDemandeId(demandeId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Aucun paiement n'a encore été enregistré pour la demande " + demandeId));
+    }
+
+    private Demande chercherDemandeDuClient(Long clientId, Long demandeId) {
+        return demandeRepository.findByIdAndClientId(demandeId, clientId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Demande " + demandeId + " introuvable pour ce client"));
+    }
+
+    private Demande chercherDemandeDuPro(Long professionnelId, Long demandeId) {
+        return demandeRepository.findByIdAndProfessionnelId(demandeId, professionnelId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Demande " + demandeId + " introuvable pour ce professionnel"));
+    }
+}
