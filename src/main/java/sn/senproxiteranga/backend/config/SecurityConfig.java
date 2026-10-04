@@ -1,5 +1,7 @@
 package sn.senproxiteranga.backend.config;
 
+import jakarta.servlet.DispatcherType;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,7 +35,11 @@ public class SecurityConfig {
                                         .accessDeniedHandler((r, s, x) -> s.sendError(403)))
                 .authorizeHttpRequests(
                         a ->
-                                a.requestMatchers(
+                                // Laisser passer la page d'erreur interne de Spring (/error) :
+                                // sinon un refus 403 (ou 404) est transformé en 401
+                                a.dispatcherTypeMatchers(DispatcherType.ERROR)
+                                        .permitAll()
+                                        .requestMatchers(
                                                 HttpMethod.POST,
                                                 "/api/auth/register",
                                                 "/api/auth/connexion",
