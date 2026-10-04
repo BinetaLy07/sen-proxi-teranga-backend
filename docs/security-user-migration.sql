@@ -7,6 +7,7 @@ ALTER TABLE utilisateurs
     ADD COLUMN zone_id BIGINT,
     ADD COLUMN metier VARCHAR(100),
     ADD COLUMN competences TEXT,
+    ADD COLUMN experience INT,
     ADD COLUMN description TEXT,
     ADD COLUMN whatsapp VARCHAR(20),
     ADD COLUMN statut_verification VARCHAR(30),
@@ -25,6 +26,18 @@ SET u.metier = p.metier,
     u.statut_verification = p.statut_verification,
     u.alerte_sms_active = p.alerte_sms_active,
     u.note_moyenne = p.note_moyenne;
+
+-- La colonne experience existe dans les versions récentes du module profil.
+-- La copier uniquement lorsqu'elle est présente dans la table d'origine.
+SET @migration_experience = IF(
+    EXISTS(SELECT 1 FROM information_schema.COLUMNS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'professionnels'
+             AND COLUMN_NAME = 'experience'),
+    'UPDATE utilisateurs u JOIN professionnels p ON p.id = u.id SET u.experience = p.experience',
+    'SELECT 1');
+PREPARE experience_copy FROM @migration_experience;
+EXECUTE experience_copy;
+DEALLOCATE PREPARE experience_copy;
 
 UPDATE utilisateurs u JOIN administrateurs a ON a.id = u.id
 SET u.dernier_acces = a.dernier_acces;

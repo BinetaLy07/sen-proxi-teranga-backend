@@ -25,7 +25,7 @@ import sn.senproxiteranga.backend.mapper.ServiceMapper;
 import sn.senproxiteranga.backend.repository.AvisRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.RealisationRepository;
-import sn.senproxiteranga.backend.repository.ServiceUtilisateurRepository;
+import sn.senproxiteranga.backend.repository.ServiceProfessionnelRepository;
 import sn.senproxiteranga.backend.service.ProfessionnelService;
 import sn.senproxiteranga.backend.service.StockageFichierService;
 
@@ -48,7 +48,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     );
 
     private final UtilisateurRepository utilisateurRepository;
-    private final ServiceUtilisateurRepository serviceRepository;
+    private final ServiceProfessionnelRepository serviceRepository;
     private final AvisRepository avisRepository;
     private final RealisationRepository realisationRepository;
     private final StockageFichierService stockageService;
@@ -170,6 +170,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     @Transactional(readOnly = true)
     public FichierImage chargerPhoto(Long professionnelId) {
         Utilisateur pro = chercherPro(professionnelId);
+        verifierProfilVisible(pro);
         if (pro.getPhoto() == null) {
             throw new ResourceNotFoundException("Ce professionnel n'a pas de photo de profil");
         }
@@ -182,6 +183,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     public FichierImage chargerRealisation(Long realisationId) {
         Realisation realisation = realisationRepository.findById(realisationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Réalisation introuvable : " + realisationId));
+        verifierProfilVisible(realisation.getProfessionnel());
         Resource ressource = stockageService.charger(realisation.getNomStocke());
         return new FichierImage(ressource, realisation.getContentType());
     }
@@ -236,9 +238,17 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
         return contentType == null ? "" : contentType.toLowerCase();
     }
 
-    private Professionnel chercherPro(Long professionnelId) {
+    private Utilisateur chercherPro(Long professionnelId) {
         return utilisateurRepository.findByIdAndRoleNom(professionnelId, NomRole.PROFESSIONNEL)
                 .orElseThrow(() -> new ResourceNotFoundException("Professionnel introuvable : " + professionnelId));
+    }
+
+    private void verifierProfilVisible(Utilisateur pro) {
+        if (!pro.aRole(NomRole.PROFESSIONNEL)
+                || pro.getStatutVerification() != StatutVerification.VALIDE
+                || pro.getStatutCompte() != StatutCompte.ACTIF) {
+            throw new ResourceNotFoundException("Professionnel introuvable : " + pro.getId());
+        }
     }
 
     private String nettoyer(String texte) {

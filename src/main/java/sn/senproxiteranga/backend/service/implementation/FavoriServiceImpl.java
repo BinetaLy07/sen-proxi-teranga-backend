@@ -66,7 +66,7 @@ public class FavoriServiceImpl implements FavoriService {
                 .toList();
     }
 
-    private Client chercherClient(Long clientId) {
+    private Utilisateur chercherClient(Long clientId) {
         return utilisateurRepository.findByIdAndRoleNom(clientId, NomRole.CLIENT)
                 .orElseThrow(() -> new ResourceNotFoundException("Client introuvable : " + clientId));
     }

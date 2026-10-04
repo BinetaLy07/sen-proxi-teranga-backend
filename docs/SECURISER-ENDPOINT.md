@@ -10,6 +10,8 @@ La dernière règle HTTP est `anyRequest().denyAll()`. Un controller et son `@Pr
 
 ## 1. Décider qui peut appeler la route
 
+Les modules rendez-vous, paiements, avis et favoris utilisent les contrôles existants sur `/api/clients/**`, `/api/professionnels/**` et `/api/demandes/**`. Les lectures de recherche, profil, photo, avis professionnels, réalisations et communes sont publiques sur leurs méthodes GET précises. Les images de profil et réalisations exigent un professionnel actif et validé. Les fichiers des demandes restent privés.
+
 | Besoin | Règle HTTP / contrôle |
 | --- | --- |
 | Lecture publique | permitAll sur la méthode et le chemin exacts |

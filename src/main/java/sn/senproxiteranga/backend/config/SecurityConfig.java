@@ -58,6 +58,12 @@ public class SecurityConfig {
                                                 "/api/zones",
                                                 "/api/zones/*",
                                                 "/api/zones/*/quartiers",
+                                                "/api/zones/*/communes",
+                                                "/api/professionnels/recherche",
+                                                "/api/professionnels/*/profil",
+                                                "/api/professionnels/*/photo",
+                                                "/api/professionnels/*/avis",
+                                                "/api/realisations/*/fichier",
                                                 "/api/services/*",
                                                 "/api/professionnels/*/services")
                                         .permitAll()
