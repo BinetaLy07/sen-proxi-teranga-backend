@@ -13,7 +13,7 @@ public record ZoneRequest(
         @Size(max = 100, message = "Le nom ne doit pas dépasser 100 caractères")
         String nom,
 
-        @NotNull(message = "Le type est obligatoire : COMMUNE ou QUARTIER")
+        @NotNull(message = "Le type est obligatoire : REGION, COMMUNE ou QUARTIER")
         TypeZone type,
 
         @DecimalMin(value = "-90.0", message = "La latitude doit être comprise entre -90 et 90")
@@ -24,7 +24,10 @@ public record ZoneRequest(
         @DecimalMax(value = "180.0", message = "La longitude doit être comprise entre -180 et 180")
         Double longitude,
 
-        // Obligatoire pour un QUARTIER, vide pour une COMMUNE (vérifié dans le service)
+        // Obligatoire pour une COMMUNE, vide pour une REGION et un QUARTIER (vérifié dans le service)
+        Long regionId,
+
+        // Obligatoire pour un QUARTIER, vide pour une REGION et une COMMUNE (vérifié dans le service)
         Long communeId
 ) {
 }

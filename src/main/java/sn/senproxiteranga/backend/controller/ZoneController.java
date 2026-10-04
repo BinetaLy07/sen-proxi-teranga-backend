@@ -19,7 +19,7 @@ public class ZoneController {
 
     private final ZoneService zoneService;
 
-    // /api/zones  ou  /api/zones?type=COMMUNE  ou  /api/zones?type=QUARTIER
+    // /api/zones  ou  /api/zones?type=REGION  ou  ?type=COMMUNE  ou  ?type=QUARTIER
     @GetMapping
     public List<ZoneResponse> lister(@RequestParam(required = false) TypeZone type) {
         return zoneService.lister(type);
@@ -28,6 +28,12 @@ public class ZoneController {
     @GetMapping("/{id}")
     public ZoneResponse trouverParId(@PathVariable Long id) {
         return zoneService.trouverParId(id);
+    }
+
+    // Les communes d'une région : /api/zones/20/communes
+    @GetMapping("/{id}/communes")
+    public List<ZoneResponse> listerCommunes(@PathVariable Long id) {
+        return zoneService.listerCommunes(id);
     }
 
     // Les quartiers d'une commune : /api/zones/1/quartiers

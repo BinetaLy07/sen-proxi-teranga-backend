@@ -18,7 +18,11 @@ public interface ProfessionnelRepository extends JpaRepository<Professionnel, Lo
      * Chaque filtre est facultatif : s'il vaut null, il est ignoré.
      *
      * - metier      : le métier contient ce texte (sans tenir compte des majuscules)
-     * - zoneId      : le pro travaille dans cette zone, ou dans un quartier de cette commune
+     * - zoneId      : une région, une commune ou un quartier. Le pro est trouvé s'il travaille :
+     *                   1. dans cette zone exacte
+     *                   2. dans un quartier de cette commune
+     *                   3. dans une commune de cette région
+     *                   4. dans un quartier d'une commune de cette région
      * - categorieId : le pro a au moins un service actif dans cette catégorie
      *
      * Résultat trié par note moyenne (les meilleurs d'abord).
@@ -26,10 +30,15 @@ public interface ProfessionnelRepository extends JpaRepository<Professionnel, Lo
     @Query("""
             SELECT DISTINCT p FROM Professionnel p
             LEFT JOIN p.zones z
+            LEFT JOIN z.commune c
             WHERE p.statutVerification = :valide
               AND p.statutCompte = :actif
               AND (:metier IS NULL OR LOWER(p.metier) LIKE LOWER(CONCAT('%', :metier, '%')))
-              AND (:zoneId IS NULL OR z.id = :zoneId OR z.commune.id = :zoneId)
+              AND (:zoneId IS NULL
+                   OR z.id = :zoneId
+                   OR c.id = :zoneId
+                   OR z.region.id = :zoneId
+                   OR c.region.id = :zoneId)
               AND (:categorieId IS NULL OR EXISTS (
                     SELECT s.id FROM ServiceProfessionnel s
                     WHERE s.professionnel = p

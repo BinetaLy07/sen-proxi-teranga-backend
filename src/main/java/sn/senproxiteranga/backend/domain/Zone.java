@@ -25,7 +25,14 @@ public class Zone extends BaseEntity {
 
     private Double longitude;
 
-    // Pour un QUARTIER : la commune à laquelle il appartient (vide pour une COMMUNE)
+    // Pour une COMMUNE : la région à laquelle elle appartient
+    // (vide pour une REGION et pour un QUARTIER)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Zone region;
+
+    // Pour un QUARTIER : la commune à laquelle il appartient
+    // (vide pour une REGION et pour une COMMUNE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "commune_id")
     private Zone commune;

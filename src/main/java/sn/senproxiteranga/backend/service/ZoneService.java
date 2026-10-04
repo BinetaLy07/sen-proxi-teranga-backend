@@ -16,6 +16,10 @@ public interface ZoneService {
 
     ZoneResponse trouverParId(Long id);
 
+    // Les communes d'une région
+    List<ZoneResponse> listerCommunes(Long regionId);
+
+    // Les quartiers d'une commune
     List<ZoneResponse> listerQuartiers(Long communeId);
 
     void supprimer(Long id);

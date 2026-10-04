@@ -8,6 +8,8 @@ public record ZoneResponse(
         TypeZone type,
         Double latitude,
         Double longitude,
+        Long regionId,
+        String regionNom,
         Long communeId,
         String communeNom
 ) {
