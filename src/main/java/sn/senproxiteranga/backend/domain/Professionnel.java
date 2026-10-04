@@ -26,6 +26,10 @@ public class Professionnel extends Utilisateur {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // Nombre d'années d'expérience (facultatif : null = non renseigné)
+    @Column
+    private Integer experience;
+
     @Column(length = 20)
     private String whatsapp;
 

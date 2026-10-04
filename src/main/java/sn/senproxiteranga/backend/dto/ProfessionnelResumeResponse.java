@@ -10,9 +10,10 @@ public record ProfessionnelResumeResponse(
         String nomComplet,
         String metier,
         String description,
+        Integer experience,       // années d'expérience (null = non renseignée)
         double noteMoyenne,
         long nombreAvis,
-        String photo,
+        String photoUrl,          // adresse de la photo de profil (null = pas de photo)
         List<String> zones        // noms des quartiers / communes où il travaille
 ) {
 }
