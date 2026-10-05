@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,8 @@ public interface DemandeRepository extends JpaRepository<Demande, Long> {
 
     // Ce service a-t-il déjà des demandes ? (pour empêcher sa suppression)
     boolean existsByServiceId(Long serviceId);
+
+    // Pour la règle des 48 h (actions automatiques) :
+    // les demandes toujours dans ce statut dont la date d'expiration est dépassée
+    List<Demande> findByStatutAndDateExpirationBefore(StatutDemande statut, LocalDateTime date);
 }
