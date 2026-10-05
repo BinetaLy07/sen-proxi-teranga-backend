@@ -36,8 +36,10 @@ import java.util.Set;
 @Transactional
 public class DemandeServiceImpl implements DemandeService {
 
-    // Délai de réponse du professionnel (règle des 48 h, à valider avec l'encadreur)
+    // Délai de réponse du professionnel : 48 h pour une demande normale,
+    // 2 h seulement pour une demande urgente (le client a besoin d'une réponse rapide)
     private static final int DELAI_REPONSE_HEURES = 48;
+    private static final int DELAI_REPONSE_URGENCE_HEURES = 2;
 
     // Statuts où une annulation est encore possible (avant "En cours")
     private static final Set<StatutDemande> STATUTS_ANNULABLES =
@@ -67,7 +69,7 @@ public class DemandeServiceImpl implements DemandeService {
         demande.setProfessionnel(service.getProfessionnel());
         demande.setZone(chercherZone(request.zoneId()));
         demande.setStatut(StatutDemande.CREEE); // Règle 3
-        demande.setDateExpiration(LocalDateTime.now().plusHours(DELAI_REPONSE_HEURES));
+        demande.setDateExpiration(LocalDateTime.now().plusHours(delaiDeReponse(demande))); // Règle 9
 
         return demandeMapper.toResponse(demandeRepository.save(demande));
     }
@@ -85,6 +87,8 @@ public class DemandeServiceImpl implements DemandeService {
         }
         demandeMapper.updateEntity(demande, request);
         demande.setZone(chercherZone(request.zoneId()));
+        // Règle 9 : la demande a changé (peut-être son urgence) => le pro a un nouveau délai pour répondre
+        demande.setDateExpiration(LocalDateTime.now().plusHours(delaiDeReponse(demande)));
         return demandeMapper.toResponse(demandeRepository.save(demande));
     }
 
@@ -151,10 +155,10 @@ public class DemandeServiceImpl implements DemandeService {
         }
         List<Demande> demandes =
                 (statut == null)
-                        ? demandeRepository.findByProfessionnelIdOrderByCreatedAtDesc(
-                                professionnelId)
-                        : demandeRepository.findByProfessionnelIdAndStatutOrderByCreatedAtDesc(
-                                professionnelId, statut);
+                        ? demandeRepository.findByProfessionnelIdOrderByUrgenteDescCreatedAtDesc(
+                        professionnelId)
+                        : demandeRepository.findByProfessionnelIdAndStatutOrderByUrgenteDescCreatedAtDesc(
+                        professionnelId, statut);
         return demandes.stream().map(demandeMapper::toResponse).toList();
     }
 
@@ -194,8 +198,13 @@ public class DemandeServiceImpl implements DemandeService {
         }
         if (demande.getDateExpiration() != null
                 && LocalDateTime.now().isAfter(demande.getDateExpiration())) {
-            throw new BusinessException("Le délai de réponse de 48 h est dépassé");
+            throw new BusinessException("Le délai de réponse est dépassé");
         }
+    }
+
+    // Règle 9 : 2 h pour répondre à une demande urgente, 48 h sinon
+    private int delaiDeReponse(Demande demande) {
+        return demande.isUrgente() ? DELAI_REPONSE_URGENCE_HEURES : DELAI_REPONSE_HEURES;
     }
 
     // Règle 1 : le client existe et n'est pas suspendu

@@ -24,8 +24,8 @@ public class TachesAutomatiques {
     private final DemandeRepository demandeRepository;
     private final PaiementRepository paiementRepository;
 
-    // Règle des 48 h (demande) : une demande CREEE sans réponse du professionnel
-    // avant sa date d'expiration passe en EXPIREE.
+    // Délai de réponse : une demande CREEE sans réponse du professionnel
+    // avant sa date d'expiration (2 h si urgente, 48 h sinon) passe en EXPIREE.
     // Lancée toutes les minutes (60 000 ms), la 1re fois 30 s après le démarrage.
     @Scheduled(initialDelay = 30_000, fixedDelay = 60_000)
     @Transactional
@@ -34,8 +34,9 @@ public class TachesAutomatiques {
                 .findByStatutAndDateExpirationBefore(StatutDemande.CREEE, LocalDateTime.now());
 
         for (Demande demande : demandes) {
+            String delai = demande.isUrgente() ? "2 h (demande urgente)" : "48 h";
             demande.setStatut(StatutDemande.EXPIREE);
-            demande.setMotifAnnulation("Le professionnel n'a pas répondu dans le délai de 48 h");
+            demande.setMotifAnnulation("Le professionnel n'a pas répondu dans le délai de " + delai);
         }
 
         if (!demandes.isEmpty()) {

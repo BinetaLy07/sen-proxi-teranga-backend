@@ -13,11 +13,11 @@ public interface DemandeRepository extends JpaRepository<Demande, Long> {
     // Les demandes d'un client, les plus récentes d'abord (suivi côté client)
     List<Demande> findByClientIdOrderByCreatedAtDesc(Long clientId);
 
-    // Les demandes reçues par un professionnel, les plus récentes d'abord
-    List<Demande> findByProfessionnelIdOrderByCreatedAtDesc(Long professionnelId);
+    // Les demandes reçues par un professionnel : les URGENTES d'abord, puis les plus récentes
+    List<Demande> findByProfessionnelIdOrderByUrgenteDescCreatedAtDesc(Long professionnelId);
 
-    // Les demandes reçues par un professionnel, filtrées par statut (ex : seulement les CREEE)
-    List<Demande> findByProfessionnelIdAndStatutOrderByCreatedAtDesc(Long professionnelId, StatutDemande statut);
+    // Pareil, filtrées par statut (ex : seulement les CREEE), urgentes d'abord
+    List<Demande> findByProfessionnelIdAndStatutOrderByUrgenteDescCreatedAtDesc(Long professionnelId, StatutDemande statut);
 
     // Une demande précise, à condition qu'elle appartienne à ce client
     Optional<Demande> findByIdAndClientId(Long id, Long clientId);
