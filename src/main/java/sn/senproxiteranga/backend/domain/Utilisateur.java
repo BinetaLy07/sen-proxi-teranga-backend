@@ -78,6 +78,11 @@ public class Utilisateur extends BaseEntity {
     @Column(name = "statut_verification", length = 30)
     private StatutVerification statutVerification;
 
+    // Rempli par l'administrateur quand il demande une correction ou refuse le profil
+    // (vidé quand le profil est validé)
+    @Column(name = "motif_verification", length = 500)
+    private String motifVerification;
+
     @Column(name = "alerte_sms_active", nullable = false)
     private boolean alerteSmsActive;
 

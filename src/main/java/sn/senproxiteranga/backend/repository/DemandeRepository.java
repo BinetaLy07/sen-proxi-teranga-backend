@@ -31,4 +31,12 @@ public interface DemandeRepository extends JpaRepository<Demande, Long> {
     // Pour la règle des 48 h (actions automatiques) :
     // les demandes toujours dans ce statut dont la date d'expiration est dépassée
     List<Demande> findByStatutAndDateExpirationBefore(StatutDemande statut, LocalDateTime date);
+
+    // ----- Administration -----
+
+    // Toutes les demandes d'un statut, les plus anciennes d'abord (ex : les litiges à traiter)
+    List<Demande> findByStatutOrderByUpdatedAtAsc(StatutDemande statut);
+
+    // Nombre de demandes dans un statut (statistiques)
+    long countByStatut(StatutDemande statut);
 }

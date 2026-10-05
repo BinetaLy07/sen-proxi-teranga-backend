@@ -103,6 +103,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     public ProfilProfessionnelResponse modifierProfil(Long professionnelId, ModifierProfilRequest request) {
         Utilisateur pro = chercherPro(professionnelId);
         professionnelMapper.modifierProfil(pro, request);
+        renvoyerEnVerificationSiCorrection(pro);                           // Règle 5
         return construireProfil(pro);
     }
 
@@ -118,6 +119,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
         if (anciennePhoto != null) {
             stockageService.supprimer(anciennePhoto);
         }
+        renvoyerEnVerificationSiCorrection(pro);                           // Règle 5
         return construireProfil(pro);
     }
 
@@ -148,6 +150,7 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
         Realisation realisation = realisationMapper.toEntity(
                 pro, photo, titre, description, contentTypeNormalise(photo), nomStocke);
 
+        renvoyerEnVerificationSiCorrection(pro);                           // Règle 5
         return realisationMapper.toResponse(realisationRepository.save(realisation));
     }
 
@@ -236,6 +239,18 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
     private String contentTypeNormalise(MultipartFile fichier) {
         String contentType = fichier.getContentType();
         return contentType == null ? "" : contentType.toLowerCase();
+    }
+
+    /**
+     * Règle 5 : quand l'administrateur a demandé une correction, le pro repasse
+     * automatiquement EN_ATTENTE dès qu'il modifie son profil (texte, photo ou réalisation).
+     * Le motif est gardé : l'admin voit ce qu'il avait demandé de corriger.
+     * Un pro déjà VALIDE qui modifie son profil reste VALIDE.
+     */
+    private void renvoyerEnVerificationSiCorrection(Utilisateur pro) {
+        if (pro.getStatutVerification() == StatutVerification.CORRECTION_DEMANDEE) {
+            pro.setStatutVerification(StatutVerification.EN_ATTENTE);
+        }
     }
 
     private Utilisateur chercherPro(Long professionnelId) {

@@ -47,8 +47,29 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
             ORDER BY p.noteMoyenne DESC
             """)
     List<Utilisateur> rechercher(@Param("metier") String metier,
-                                   @Param("zoneId") Long zoneId,
-                                   @Param("categorieId") Long categorieId,
-                                   @Param("valide") StatutVerification valide,
-                                   @Param("actif") StatutCompte actif);
+                                 @Param("zoneId") Long zoneId,
+                                 @Param("categorieId") Long categorieId,
+                                 @Param("valide") StatutVerification valide,
+                                 @Param("actif") StatutCompte actif);
+
+    // ----- Administration -----
+
+    // Les professionnels qui ont ce statut de vérification, les plus anciens d'abord
+    // (l'admin traite en premier ceux qui attendent depuis le plus longtemps)
+    List<Utilisateur> findByRoleNomAndStatutVerificationOrderByCreatedAtAsc(
+            NomRole nomRole, StatutVerification statutVerification);
+
+    // Tous les professionnels, les plus anciens d'abord
+    List<Utilisateur> findByRoleNomOrderByCreatedAtAsc(NomRole nomRole);
+
+    // ----- Statistiques -----
+
+    // Nombre de comptes d'un rôle (ex : combien de clients ?)
+    long countByRoleNom(NomRole nomRole);
+
+    // Nombre de professionnels dans un statut de vérification (ex : combien en attente ?)
+    long countByRoleNomAndStatutVerification(NomRole nomRole, StatutVerification statutVerification);
+
+    // Nombre de comptes suspendus
+    long countByStatutCompte(StatutCompte statutCompte);
 }

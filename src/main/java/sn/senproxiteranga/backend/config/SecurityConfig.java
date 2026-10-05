@@ -86,6 +86,10 @@ public class SecurityConfig {
                                                                 access,
                                                                 auth.get(),
                                                                 ctx.getRequest()))
+                                        // Administration (validation des pros, statistiques,
+                                        // litiges) : réservée à l'administrateur
+                                        .requestMatchers("/api/admin/**")
+                                        .hasRole("ADMINISTRATEUR")
                                         .anyRequest()
                                         .denyAll())
                 .addFilterBefore(
