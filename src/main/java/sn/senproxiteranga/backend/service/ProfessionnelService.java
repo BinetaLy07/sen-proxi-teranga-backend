@@ -42,9 +42,12 @@ public interface ProfessionnelService {
 
     // ===================== Affichage des images =====================
 
-    FichierImage chargerPhoto(Long professionnelId);
+    // Les images d'un pro validé sont visibles par tous.
+    // Celles d'un pro pas encore validé : seulement par lui-même et par l'administrateur.
+    // demandeurId vaut null pour un visiteur non connecté.
+    FichierImage chargerPhoto(Long professionnelId, Long demandeurId, boolean demandeurAdmin);
 
-    FichierImage chargerRealisation(Long realisationId);
+    FichierImage chargerRealisation(Long realisationId, Long demandeurId, boolean demandeurAdmin);
 
     /**
      * Une image prête à être envoyée au navigateur.

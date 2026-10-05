@@ -171,9 +171,9 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
 
     @Override
     @Transactional(readOnly = true)
-    public FichierImage chargerPhoto(Long professionnelId) {
+    public FichierImage chargerPhoto(Long professionnelId, Long demandeurId, boolean demandeurAdmin) {
         Utilisateur pro = chercherPro(professionnelId);
-        verifierProfilVisible(pro);
+        verifierImagesVisibles(pro, demandeurId, demandeurAdmin);         // Règle 6
         if (pro.getPhoto() == null) {
             throw new ResourceNotFoundException("Ce professionnel n'a pas de photo de profil");
         }
@@ -183,10 +183,10 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
 
     @Override
     @Transactional(readOnly = true)
-    public FichierImage chargerRealisation(Long realisationId) {
+    public FichierImage chargerRealisation(Long realisationId, Long demandeurId, boolean demandeurAdmin) {
         Realisation realisation = realisationRepository.findById(realisationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Réalisation introuvable : " + realisationId));
-        verifierProfilVisible(realisation.getProfessionnel());
+        verifierImagesVisibles(realisation.getProfessionnel(), demandeurId, demandeurAdmin); // Règle 6
         Resource ressource = stockageService.charger(realisation.getNomStocke());
         return new FichierImage(ressource, realisation.getContentType());
     }
@@ -258,10 +258,20 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
                 .orElseThrow(() -> new ResourceNotFoundException("Professionnel introuvable : " + professionnelId));
     }
 
-    private void verifierProfilVisible(Utilisateur pro) {
-        if (!pro.aRole(NomRole.PROFESSIONNEL)
-                || pro.getStatutVerification() != StatutVerification.VALIDE
-                || pro.getStatutCompte() != StatutCompte.ACTIF) {
+    /**
+     * Règle 6 : qui peut voir les images (photo de profil, réalisations) d'un pro ?
+     * - tout le monde, si le pro est validé et actif (profil public) ;
+     * - sinon, seulement le pro lui-même (pour voir son propre profil)
+     *   et l'administrateur (pour vérifier le profil avant de le valider).
+     * Pour les autres, le pro est "introuvable" (on ne révèle pas qu'il existe).
+     */
+    private void verifierImagesVisibles(Utilisateur pro, Long demandeurId, boolean demandeurAdmin) {
+        boolean profilPublic = pro.aRole(NomRole.PROFESSIONNEL)
+                && pro.getStatutVerification() == StatutVerification.VALIDE
+                && pro.getStatutCompte() == StatutCompte.ACTIF;
+        boolean cEstLuiMeme = pro.getId().equals(demandeurId);
+
+        if (!profilPublic && !cEstLuiMeme && !demandeurAdmin) {
             throw new ResourceNotFoundException("Professionnel introuvable : " + pro.getId());
         }
     }

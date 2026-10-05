@@ -6,12 +6,14 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sn.senproxiteranga.backend.dto.ModifierProfilRequest;
 import sn.senproxiteranga.backend.dto.ProfessionnelResumeResponse;
 import sn.senproxiteranga.backend.dto.ProfilProfessionnelResponse;
 import sn.senproxiteranga.backend.dto.RealisationResponse;
+import sn.senproxiteranga.backend.security.SessionPrincipal;
 import sn.senproxiteranga.backend.service.ProfessionnelService;
 import sn.senproxiteranga.backend.service.ProfessionnelService.FichierImage;
 
@@ -82,14 +84,26 @@ public class ProfessionnelController {
 
     // ===================== Affichage des images =====================
 
+    // Adresses publiques : "moi" vaut null pour un visiteur non connecté.
+    // Si un badge est envoyé, on sait qui regarde (le pro lui-même ou l'admin).
     @GetMapping("/professionnels/{proId}/photo")
-    public ResponseEntity<Resource> afficherPhoto(@PathVariable Long proId) {
-        return image(professionnelService.chargerPhoto(proId));
+    public ResponseEntity<Resource> afficherPhoto(@PathVariable Long proId,
+                                                  @AuthenticationPrincipal SessionPrincipal moi) {
+        return image(professionnelService.chargerPhoto(proId, idDe(moi), estAdmin(moi)));
     }
 
     @GetMapping("/realisations/{realisationId}/fichier")
-    public ResponseEntity<Resource> afficherRealisation(@PathVariable Long realisationId) {
-        return image(professionnelService.chargerRealisation(realisationId));
+    public ResponseEntity<Resource> afficherRealisation(@PathVariable Long realisationId,
+                                                        @AuthenticationPrincipal SessionPrincipal moi) {
+        return image(professionnelService.chargerRealisation(realisationId, idDe(moi), estAdmin(moi)));
+    }
+
+    private Long idDe(SessionPrincipal moi) {
+        return moi == null ? null : moi.utilisateurId();
+    }
+
+    private boolean estAdmin(SessionPrincipal moi) {
+        return moi != null && "ADMINISTRATEUR".equals(moi.role());
     }
 
     // Réponse "image" : le navigateur l'affiche directement
