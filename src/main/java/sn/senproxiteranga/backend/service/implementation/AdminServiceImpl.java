@@ -11,6 +11,7 @@ import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutPaiement;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.domain.enums.TypeNotification;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.ProfessionnelAdminResponse;
 import sn.senproxiteranga.backend.dto.ResoudreLitigeRequest;
@@ -24,6 +25,7 @@ import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.PaiementRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.AdminService;
+import sn.senproxiteranga.backend.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -41,6 +43,7 @@ public class AdminServiceImpl implements AdminService {
     private final AvisRepository avisRepository;
     private final AdminMapper adminMapper;
     private final DemandeMapper demandeMapper;
+    private final NotificationService notificationService;
 
     // =====================================================================
     //                    VÉRIFICATION DES PROFESSIONNELS
@@ -66,6 +69,9 @@ public class AdminServiceImpl implements AdminService {
         }
         pro.setStatutVerification(StatutVerification.VALIDE);
         pro.setMotifVerification(null);                                       // Règle 5
+        prevenirPro(pro, "Profil validé",
+                "Bonne nouvelle : votre profil a été vérifié par l'administrateur. "
+                        + "Les clients peuvent maintenant vous trouver et vous contacter.");
         return adminMapper.toProfessionnelAdmin(pro);
     }
 
@@ -79,6 +85,9 @@ public class AdminServiceImpl implements AdminService {
         }
         pro.setStatutVerification(StatutVerification.CORRECTION_DEMANDEE);
         pro.setMotifVerification(motif.trim());
+        prevenirPro(pro, "Correction demandée",
+                "L'administrateur vous demande de corriger votre profil. "
+                        + "Ouvrez votre profil pour voir ce qu'il faut modifier.");
         return adminMapper.toProfessionnelAdmin(pro);
     }
 
@@ -94,6 +103,9 @@ public class AdminServiceImpl implements AdminService {
         }
         pro.setStatutVerification(StatutVerification.REFUSE);
         pro.setMotifVerification(motif.trim());
+        prevenirPro(pro, "Profil refusé",
+                "Votre profil n'a pas été accepté par l'administrateur. "
+                        + "Ouvrez votre profil pour voir le motif.");
         return adminMapper.toProfessionnelAdmin(pro);
     }
 
@@ -136,6 +148,8 @@ public class AdminServiceImpl implements AdminService {
             demande.setStatut(StatutDemande.ANNULEE);
             demande.setMotifAnnulation("Litige réglé par l'administrateur : dossier annulé");
         }
+
+        prevenirLitigeResolu(demande, request.decision());
         return demandeMapper.toResponse(demande);
     }
 
@@ -166,6 +180,30 @@ public class AdminServiceImpl implements AdminService {
                 paiementRepository.sommeDesMontants(StatutPaiement.CONFIRME),
                 avisRepository.count()
         );
+    }
+
+    // =====================================================================
+    //                            NOTIFICATIONS
+    // =====================================================================
+
+    // Résultat de la vérification du profil : on prévient le pro
+    private void prevenirPro(Utilisateur pro, String titre, String message) {
+        notificationService.notifier(pro, TypeNotification.PROFIL_VERIFIE, titre, message, null);
+    }
+
+    // Litige réglé : le client ET le pro sont prévenus de la décision
+    private void prevenirLitigeResolu(Demande demande, DecisionLitige decision) {
+        String resultat = (decision == DecisionLitige.PAIEMENT_RECU)
+                ? "le paiement est reconnu et le dossier est clôturé."
+                : "le dossier est annulé.";
+        String message = "L'administrateur a réglé le litige sur la demande : "
+                + demande.getService().getTitre() + ". Décision : " + resultat
+                + " Ouvrez la demande pour lire son explication.";
+
+        notificationService.notifier(demande.getClient(),
+                TypeNotification.LITIGE_RESOLU, "Litige réglé", message, demande.getId());
+        notificationService.notifier(demande.getProfessionnel(),
+                TypeNotification.LITIGE_RESOLU, "Litige réglé", message, demande.getId());
     }
 
     // =====================================================================

@@ -90,6 +90,10 @@ public class SecurityConfig {
                                         // du badge, le service vérifie les règles)
                                         .requestMatchers("/api/messages/**")
                                         .authenticated()
+                                        // Notifications : tout compte connecté ne voit QUE
+                                        // les siennes (l'identité vient du badge)
+                                        .requestMatchers("/api/notifications/**")
+                                        .authenticated()
                                         // Administration (validation des pros, statistiques,
                                         // litiges) : réservée à l'administrateur
                                         .requestMatchers("/api/admin/**")

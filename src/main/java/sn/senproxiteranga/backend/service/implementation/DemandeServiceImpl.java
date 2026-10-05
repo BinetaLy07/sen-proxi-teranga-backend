@@ -13,6 +13,7 @@ import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.domain.enums.TypeNotification;
 import sn.senproxiteranga.backend.dto.AccepterDemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeRequest;
 import sn.senproxiteranga.backend.dto.DemandeResponse;
@@ -25,6 +26,8 @@ import sn.senproxiteranga.backend.repository.ServiceProfessionnelRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.ZoneRepository;
 import sn.senproxiteranga.backend.service.DemandeService;
+import sn.senproxiteranga.backend.service.NotificationService;
+import sn.senproxiteranga.backend.service.SmsService;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
@@ -55,6 +58,8 @@ public class DemandeServiceImpl implements DemandeService {
     private final ServiceProfessionnelRepository serviceRepository;
     private final ZoneRepository zoneRepository;
     private final DemandeMapper demandeMapper;
+    private final NotificationService notificationService;
+    private final SmsService smsService;
 
     // =============== CÔTÉ CLIENT ===============
 
@@ -71,7 +76,10 @@ public class DemandeServiceImpl implements DemandeService {
         demande.setStatut(StatutDemande.CREEE); // Règle 3
         demande.setDateExpiration(LocalDateTime.now().plusHours(delaiDeReponse(demande))); // Règle 9
 
-        return demandeMapper.toResponse(demandeRepository.save(demande));
+        // On enregistre D'ABORD (pour avoir l'id), PUIS on prévient le pro
+        Demande enregistree = demandeRepository.save(demande);
+        prevenirProNouvelleDemande(enregistree);
+        return demandeMapper.toResponse(enregistree);
     }
 
     @Override
@@ -127,7 +135,9 @@ public class DemandeServiceImpl implements DemandeService {
         }
 
         demande.setStatut(StatutDemande.ACCEPTEE);
-        return demandeMapper.toResponse(demandeRepository.save(demande));
+        Demande enregistree = demandeRepository.save(demande);
+        prevenirClientReponse(enregistree, true);
+        return demandeMapper.toResponse(enregistree);
     }
 
     @Override
@@ -136,7 +146,9 @@ public class DemandeServiceImpl implements DemandeService {
         verifierEnAttenteDeReponse(demande); // Règle 5
         demande.setStatut(StatutDemande.REFUSEE);
         demande.setMotifRefus(request.motif().trim());
-        return demandeMapper.toResponse(demandeRepository.save(demande));
+        Demande enregistree = demandeRepository.save(demande);
+        prevenirClientReponse(enregistree, false);
+        return demandeMapper.toResponse(enregistree);
     }
 
     @Override
@@ -175,6 +187,62 @@ public class DemandeServiceImpl implements DemandeService {
                                         new ResourceNotFoundException(
                                                 "Demande introuvable : " + demandeId));
         return demandeMapper.toResponse(demande);
+    }
+
+    // =============== NOTIFICATIONS ===============
+
+    // Nouvelle demande : notification au pro, + SMS si urgente ou si le pro a activé l'alerte SMS
+    private void prevenirProNouvelleDemande(Demande demande) {
+        Utilisateur pro = demande.getProfessionnel();
+        Utilisateur client = demande.getClient();
+        String nomClient = client.getPrenom() + " " + client.getNom();
+        String titreService = demande.getService().getTitre();
+        int delai = delaiDeReponse(demande);
+
+        String titre = demande.isUrgente() ? "Nouvelle demande URGENTE" : "Nouvelle demande";
+        String message = nomClient + " vous demande : " + titreService
+                + ". Vous avez " + delai + " h pour répondre.";
+        notificationService.notifier(
+                pro, TypeNotification.NOUVELLE_DEMANDE, titre, message, demande.getId());
+
+        if (demande.isUrgente() || pro.isAlerteSmsActive()) {
+            String sms = "Sen Proxi Teranga : " + titre.toLowerCase() + " de " + nomClient
+                    + " (" + titreService + "). Repondez sous " + delai + " h.";
+            smsService.envoyer(numeroPourSms(pro), sms);
+        }
+    }
+
+    // Réponse du pro (acceptée ou refusée) : notification au client
+    private void prevenirClientReponse(Demande demande, boolean acceptee) {
+        Utilisateur pro = demande.getProfessionnel();
+        String nomPro = pro.getPrenom() + " " + pro.getNom();
+        String titreService = demande.getService().getTitre();
+
+        if (acceptee) {
+            notificationService.notifier(
+                    demande.getClient(),
+                    TypeNotification.DEMANDE_ACCEPTEE,
+                    "Demande acceptée",
+                    nomPro + " a accepté votre demande : " + titreService + ".",
+                    demande.getId());
+        } else {
+            notificationService.notifier(
+                    demande.getClient(),
+                    TypeNotification.DEMANDE_REFUSEE,
+                    "Demande refusée",
+                    nomPro + " a refusé votre demande : " + titreService
+                            + ". Ouvrez la demande pour voir le motif.",
+                    demande.getId());
+        }
+    }
+
+    // Le SMS part sur le téléphone ; à défaut, sur le numéro WhatsApp
+    private String numeroPourSms(Utilisateur utilisateur) {
+        String telephone = utilisateur.getTelephone();
+        if (telephone != null && !telephone.isBlank()) {
+            return telephone;
+        }
+        return utilisateur.getWhatsapp();
     }
 
     // =============== MÉTHODES INTERNES ===============
