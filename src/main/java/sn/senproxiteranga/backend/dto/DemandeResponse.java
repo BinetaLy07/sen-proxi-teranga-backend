@@ -17,6 +17,7 @@ public record DemandeResponse(
         LocalDateTime dateExpiration,
         String motifRefus,
         String motifAnnulation,
+        String resolutionLitige,   // décision de l'administrateur après un litige (sinon null)
 
         // Visite avant devis
         boolean visiteDemandee,

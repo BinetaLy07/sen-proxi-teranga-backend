@@ -5,14 +5,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.MotifRequest;
 import sn.senproxiteranga.backend.dto.ProfessionnelAdminResponse;
+import sn.senproxiteranga.backend.dto.ResoudreLitigeRequest;
 import sn.senproxiteranga.backend.dto.StatistiquesResponse;
 import sn.senproxiteranga.backend.service.AdminService;
 
 import java.util.List;
 
-// Espace administrateur : vérification des professionnels et statistiques
+// Espace administrateur : vérification des professionnels, litiges et statistiques
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -20,6 +22,8 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+
+    // ---------- Vérification des professionnels ----------
 
     // /api/admin/professionnels  ou  /api/admin/professionnels?statut=EN_ATTENTE
     @GetMapping("/professionnels")
@@ -46,6 +50,22 @@ public class AdminController {
                                               @Valid @RequestBody MotifRequest request) {
         return adminService.refuserProfessionnel(id, request.motif());
     }
+
+    // ---------- Litiges ----------
+
+    @GetMapping("/litiges")
+    public List<DemandeResponse> listerLitiges() {
+        return adminService.listerLitiges();
+    }
+
+    // Corps : {"decision": "PAIEMENT_RECU", "explication": "Capture Wave vérifiée"}
+    @PatchMapping("/litiges/{demandeId}/resoudre")
+    public DemandeResponse resoudreLitige(@PathVariable Long demandeId,
+                                          @Valid @RequestBody ResoudreLitigeRequest request) {
+        return adminService.resoudreLitige(demandeId, request);
+    }
+
+    // ---------- Statistiques ----------
 
     @GetMapping("/statistiques")
     public StatistiquesResponse statistiques() {

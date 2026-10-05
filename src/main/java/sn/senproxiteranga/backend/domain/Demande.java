@@ -44,6 +44,11 @@ public class Demande extends BaseEntity {
     @Column(name = "motif_annulation", length = 500)
     private String motifAnnulation;
 
+    // Décision de l'administrateur quand la demande était EN_LITIGE
+    // (ex : "Capture Wave vérifiée : transfert bien reçu le 3 octobre")
+    @Column(name = "resolution_litige", length = 500)
+    private String resolutionLitige;
+
     // ----- Visite avant devis -----
 
     // Le client souhaite que le professionnel passe voir avant de faire le devis

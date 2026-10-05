@@ -3,23 +3,29 @@ package sn.senproxiteranga.backend.service.implementation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.Utilisateur;
+import sn.senproxiteranga.backend.domain.enums.DecisionLitige;
 import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutPaiement;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.dto.DemandeResponse;
 import sn.senproxiteranga.backend.dto.ProfessionnelAdminResponse;
+import sn.senproxiteranga.backend.dto.ResoudreLitigeRequest;
 import sn.senproxiteranga.backend.dto.StatistiquesResponse;
 import sn.senproxiteranga.backend.exception.BusinessException;
 import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.AdminMapper;
+import sn.senproxiteranga.backend.mapper.DemandeMapper;
 import sn.senproxiteranga.backend.repository.AvisRepository;
 import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.PaiementRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.AdminService;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +40,7 @@ public class AdminServiceImpl implements AdminService {
     private final PaiementRepository paiementRepository;
     private final AvisRepository avisRepository;
     private final AdminMapper adminMapper;
+    private final DemandeMapper demandeMapper;
 
     // =====================================================================
     //                    VÉRIFICATION DES PROFESSIONNELS
@@ -88,6 +95,48 @@ public class AdminServiceImpl implements AdminService {
         pro.setStatutVerification(StatutVerification.REFUSE);
         pro.setMotifVerification(motif.trim());
         return adminMapper.toProfessionnelAdmin(pro);
+    }
+
+    // =====================================================================
+    //                               LITIGES
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DemandeResponse> listerLitiges() {
+        // Les plus anciens d'abord : ceux qui attendent depuis le plus longtemps
+        return demandeRepository.findByStatutOrderByUpdatedAtAsc(StatutDemande.EN_LITIGE).stream()
+                .map(demandeMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public DemandeResponse resoudreLitige(Long demandeId, ResoudreLitigeRequest request) {
+        Demande demande = demandeRepository.findById(demandeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable : " + demandeId));
+
+        // Règle 6 : on ne règle qu'une demande EN_LITIGE
+        if (demande.getStatut() != StatutDemande.EN_LITIGE) {
+            throw new BusinessException(
+                    "Cette demande n'est pas en litige (statut : " + demande.getStatut() + ")");
+        }
+
+        // Règle 7 : l'explication de l'admin est gardée, client et pro la voient
+        demande.setResolutionLitige(request.explication().trim());
+
+        if (request.decision() == DecisionLitige.PAIEMENT_RECU) {
+            // Règle 8 : la preuve est acceptée => paiement confirmé, dossier clôturé
+            paiementRepository.findByDemandeId(demandeId).ifPresent(paiement -> {
+                paiement.setStatut(StatutPaiement.CONFIRME);
+                paiement.setDateReponse(LocalDateTime.now());
+            });
+            demande.setStatut(StatutDemande.CLOTUREE);
+        } else {
+            // Règle 9 : le dossier ne peut pas être réglé dans l'application => annulé
+            demande.setStatut(StatutDemande.ANNULEE);
+            demande.setMotifAnnulation("Litige réglé par l'administrateur : dossier annulé");
+        }
+        return demandeMapper.toResponse(demande);
     }
 
     // =====================================================================

@@ -48,6 +48,7 @@ public class DemandeMapper {
                 demande.getDateExpiration(),
                 demande.getMotifRefus(),
                 demande.getMotifAnnulation(),
+                demande.getResolutionLitige(),
 
                 demande.isVisiteDemandee(),
                 demande.getFraisVisite(),
