@@ -30,8 +30,9 @@ import java.util.List;
 @Transactional
 public class PaiementServiceImpl implements PaiementService {
 
-    // Règle du cahier des charges : le pro a 72 h pour confirmer le paiement
-    private static final int DELAI_CONFIRMATION_HEURES = 72;
+    // Règle du cahier des charges : le pro a 48 h pour confirmer (ou contester) le paiement.
+    // Sans réponse dans ce délai, le paiement est confirmé automatiquement (voir TachesAutomatiques)
+    private static final int DELAI_CONFIRMATION_HEURES = 48;
 
     // Taille maximale de la colonne "motif_contestation"
     private static final int TAILLE_MAX_MOTIF = 500;
@@ -55,7 +56,7 @@ public class PaiementServiceImpl implements PaiementService {
         Paiement paiement = paiementMapper.toEntity(
                 demande, montant, request.modePaiement(), request.reference());
 
-        // Règle 4 : le pro a 72 h pour confirmer
+        // Règle 4 : le pro a 48 h pour confirmer ou contester
         paiement.setStatut(StatutPaiement.DECLARE);
         paiement.setDateLimiteConfirmation(LocalDateTime.now().plusHours(DELAI_CONFIRMATION_HEURES));
 
