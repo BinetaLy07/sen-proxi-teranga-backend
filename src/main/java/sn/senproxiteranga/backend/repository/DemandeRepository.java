@@ -28,6 +28,9 @@ public interface DemandeRepository extends JpaRepository<Demande, Long> {
     // Ce service a-t-il déjà des demandes ? (pour empêcher sa suppression)
     boolean existsByServiceId(Long serviceId);
 
+    // Ce client a-t-il déjà envoyé une demande à ce professionnel ? (messagerie, règle 5)
+    boolean existsByClientIdAndProfessionnelId(Long clientId, Long professionnelId);
+
     // Pour la règle des 48 h (actions automatiques) :
     // les demandes toujours dans ce statut dont la date d'expiration est dépassée
     List<Demande> findByStatutAndDateExpirationBefore(StatutDemande statut, LocalDateTime date);

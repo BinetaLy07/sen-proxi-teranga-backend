@@ -86,6 +86,10 @@ public class SecurityConfig {
                                                                 access,
                                                                 auth.get(),
                                                                 ctx.getRequest()))
+                                        // Messagerie : tout compte connecté (l'identité vient
+                                        // du badge, le service vérifie les règles)
+                                        .requestMatchers("/api/messages/**")
+                                        .authenticated()
                                         // Administration (validation des pros, statistiques,
                                         // litiges) : réservée à l'administrateur
                                         .requestMatchers("/api/admin/**")
