@@ -17,6 +17,7 @@ import sn.senproxiteranga.backend.exception.BusinessException;
 import sn.senproxiteranga.backend.exception.ResourceNotFoundException;
 import sn.senproxiteranga.backend.mapper.ServiceMapper;
 import sn.senproxiteranga.backend.repository.CategorieRepository;
+import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.ServiceProfessionnelRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.ServiceProfessionnelService;
@@ -31,6 +32,7 @@ public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelServ
     private final ServiceProfessionnelRepository serviceRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final CategorieRepository categorieRepository;
+    private final DemandeRepository demandeRepository;
     private final ServiceMapper serviceMapper;
 
     @Override
@@ -76,6 +78,14 @@ public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelServ
     @Override
     public void supprimer(Long professionnelId, Long serviceId) {
         ServiceProfessionnel service = chercherServiceDuPro(professionnelId, serviceId);
+
+        // Règle 5 : un service qui a déjà des demandes doit être gardé
+        // (historique des demandes, devis et paiements) : on le désactive à la place
+        if (demandeRepository.existsByServiceId(serviceId)) {
+            throw new BusinessException(
+                    "Ce service a déjà reçu des demandes : il ne peut pas être supprimé. "
+                            + "Désactivez-le pour qu'il ne soit plus proposé aux clients.");
+        }
         serviceRepository.delete(service);
     }
 
@@ -89,7 +99,7 @@ public class ServiceProfessionnelServiceImpl implements ServiceProfessionnelServ
         List<ServiceProfessionnel> services =
                 actifsSeulement
                         ? serviceRepository.findByProfessionnelIdAndActifTrueOrderByTitreAsc(
-                                professionnelId)
+                        professionnelId)
                         : serviceRepository.findByProfessionnelIdOrderByTitreAsc(professionnelId);
         return services.stream().map(serviceMapper::toResponse).toList();
     }
