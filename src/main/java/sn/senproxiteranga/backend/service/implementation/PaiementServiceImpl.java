@@ -7,10 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.Devis;
 import sn.senproxiteranga.backend.domain.Paiement;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.ModePaiement;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutDevis;
 import sn.senproxiteranga.backend.domain.enums.StatutPaiement;
+import sn.senproxiteranga.backend.domain.enums.TypeNotification;
 import sn.senproxiteranga.backend.dto.PaiementRequest;
 import sn.senproxiteranga.backend.dto.PaiementResponse;
 import sn.senproxiteranga.backend.exception.BusinessException;
@@ -20,7 +22,9 @@ import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.DevisRepository;
 import sn.senproxiteranga.backend.repository.PaiementRepository;
+import sn.senproxiteranga.backend.service.NotificationService;
 import sn.senproxiteranga.backend.service.PaiementService;
+import sn.senproxiteranga.backend.service.SmsService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,6 +46,8 @@ public class PaiementServiceImpl implements PaiementService {
     private final DevisRepository devisRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PaiementMapper paiementMapper;
+    private final NotificationService notificationService;
+    private final SmsService smsService;
 
     // =====================================================================
     //                              CLIENT
@@ -60,7 +66,9 @@ public class PaiementServiceImpl implements PaiementService {
         paiement.setStatut(StatutPaiement.DECLARE);
         paiement.setDateLimiteConfirmation(LocalDateTime.now().plusHours(DELAI_CONFIRMATION_HEURES));
 
-        return paiementMapper.toResponse(paiementRepository.save(paiement));
+        Paiement enregistre = paiementRepository.save(paiement);
+        prevenirProPaiementDeclare(enregistre);
+        return paiementMapper.toResponse(enregistre);
     }
 
     @Override
@@ -150,6 +158,39 @@ public class PaiementServiceImpl implements PaiementService {
             throw new ResourceNotFoundException("Demande introuvable : " + demandeId);
         }
         return paiementMapper.toResponse(chercherPaiement(demandeId));
+    }
+
+    // =====================================================================
+    //                           NOTIFICATIONS
+    // =====================================================================
+
+    // Le client dit avoir payé : le pro DOIT le savoir, car sans réponse de sa part
+    // sous 48 h, le paiement sera confirmé automatiquement => notification + SMS
+    private void prevenirProPaiementDeclare(Paiement paiement) {
+        Demande demande = paiement.getDemande();
+        Utilisateur client = demande.getClient();
+        String nomClient = client.getPrenom() + " " + client.getNom();
+        String montant = String.format("%.0f F CFA", paiement.getMontant());
+
+        String message = nomClient + " déclare vous avoir payé " + montant
+                + " par " + paiement.getModePaiement()
+                + ". Confirmez ou contestez sous " + DELAI_CONFIRMATION_HEURES
+                + " h, sinon le paiement sera confirmé automatiquement.";
+        notificationService.notifier(demande.getProfessionnel(),
+                TypeNotification.PAIEMENT_DECLARE, "Paiement à confirmer", message, demande.getId());
+
+        String sms = "Sen Proxi Teranga : " + nomClient + " declare vous avoir paye " + montant
+                + ". Confirmez sous " + DELAI_CONFIRMATION_HEURES + " h dans l'application.";
+        smsService.envoyer(numeroPourSms(demande.getProfessionnel()), sms);
+    }
+
+    // Le SMS part sur le téléphone ; à défaut, sur le numéro WhatsApp
+    private String numeroPourSms(Utilisateur utilisateur) {
+        String telephone = utilisateur.getTelephone();
+        if (telephone != null && !telephone.isBlank()) {
+            return telephone;
+        }
+        return utilisateur.getWhatsapp();
     }
 
     // =====================================================================

@@ -5,9 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.Devis;
+import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutDevis;
 import sn.senproxiteranga.backend.domain.enums.TypeLigneDevis;
+import sn.senproxiteranga.backend.domain.enums.TypeNotification;
 import sn.senproxiteranga.backend.dto.DevisRequest;
 import sn.senproxiteranga.backend.dto.DevisResponse;
 import sn.senproxiteranga.backend.dto.LigneDevisRequest;
@@ -17,6 +19,7 @@ import sn.senproxiteranga.backend.mapper.DevisMapper;
 import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.DevisRepository;
 import sn.senproxiteranga.backend.service.DevisService;
+import sn.senproxiteranga.backend.service.NotificationService;
 
 import java.util.List;
 
@@ -31,6 +34,7 @@ public class DevisServiceImpl implements DevisService {
     private final DevisRepository devisRepository;
     private final DemandeRepository demandeRepository;
     private final DevisMapper devisMapper;
+    private final NotificationService notificationService;
 
     // =====================================================================
     //                    ACTIONS DU PROFESSIONNEL
@@ -65,6 +69,7 @@ public class DevisServiceImpl implements DevisService {
         // La demande avance dans son cycle de vie
         demande.setStatut(StatutDemande.DEVIS_ENVOYE);
 
+        prevenirClientDevis(enregistre);
         return devisMapper.toResponse(enregistre);
     }
 
@@ -91,7 +96,9 @@ public class DevisServiceImpl implements DevisService {
         nouveau.setNumeroVersion(actuel.getNumeroVersion() + 1);
         devisMapper.ajouterLignes(nouveau, request);
 
-        return devisMapper.toResponse(devisRepository.save(nouveau));
+        Devis enregistre = devisRepository.save(nouveau);
+        prevenirClientDevis(enregistre);
+        return devisMapper.toResponse(enregistre);
     }
 
     // =====================================================================
@@ -164,6 +171,28 @@ public class DevisServiceImpl implements DevisService {
         return devisRepository.findByDemandeIdOrderByNumeroVersionAsc(demandeId).stream()
                 .map(devisMapper::toResponse)
                 .toList();
+    }
+
+    // =====================================================================
+    //                          NOTIFICATIONS
+    // =====================================================================
+
+    // Nouveau devis (1re version ou révision) : on prévient le client avec le montant
+    private void prevenirClientDevis(Devis devis) {
+        Demande demande = devis.getDemande();
+        Utilisateur pro = demande.getProfessionnel();
+        String nomPro = pro.getPrenom() + " " + pro.getNom();
+        String montant = String.format("%.0f F CFA", devis.getMontantTotal());
+
+        String titre = (devis.getNumeroVersion() == 1)
+                ? "Devis reçu"
+                : "Nouveau devis (version " + devis.getNumeroVersion() + ")";
+        String message = nomPro + " vous a envoyé un devis de " + montant
+                + " pour : " + demande.getService().getTitre()
+                + ". Ouvrez la demande pour l'accepter, le refuser ou demander une révision.";
+
+        notificationService.notifier(
+                demande.getClient(), TypeNotification.DEVIS_RECU, titre, message, demande.getId());
     }
 
     // =====================================================================

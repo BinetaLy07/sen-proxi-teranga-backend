@@ -8,6 +8,7 @@ import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
+import sn.senproxiteranga.backend.domain.enums.TypeNotification;
 import sn.senproxiteranga.backend.dto.ConversationResponse;
 import sn.senproxiteranga.backend.dto.MessageRequest;
 import sn.senproxiteranga.backend.dto.MessageResponse;
@@ -18,6 +19,7 @@ import sn.senproxiteranga.backend.repository.DemandeRepository;
 import sn.senproxiteranga.backend.repository.MessageRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 import sn.senproxiteranga.backend.service.MessageService;
+import sn.senproxiteranga.backend.service.NotificationService;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,10 +31,14 @@ import java.util.Map;
 @Transactional
 public class MessageServiceImpl implements MessageService {
 
+    // Longueur de l'extrait du message affiché dans la notification
+    private static final int TAILLE_EXTRAIT = 100;
+
     private final MessageRepository messageRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final DemandeRepository demandeRepository;
     private final MessageMapper messageMapper;
+    private final NotificationService notificationService;
 
     @Override
     public MessageResponse envoyer(Long expediteurId, Long destinataireId, MessageRequest request) {
@@ -53,9 +59,20 @@ public class MessageServiceImpl implements MessageService {
                     "Les messages s'échangent uniquement entre un client et un professionnel");
         }
 
+        // Règle 6 (anti-spam) : on regarde AVANT d'enregistrer si le destinataire
+        // a déjà des messages non lus de cet expéditeur. Si oui, il est déjà prévenu.
+        boolean dejaPrevenu = !messageRepository
+                .findByExpediteurIdAndDestinataireIdAndLuFalse(expediteurId, destinataireId)
+                .isEmpty();
+
         // Règle 1 (texte non vide, 1000 caractères max) : vérifiée par @Valid sur MessageRequest
         Message message = messageMapper.toEntity(expediteur, destinataire, request.contenu());
-        return messageMapper.toResponse(messageRepository.save(message));
+        Message enregistre = messageRepository.save(message);
+
+        if (!dejaPrevenu) {
+            prevenirDestinataire(enregistre);
+        }
+        return messageMapper.toResponse(enregistre);
     }
 
     @Override
@@ -98,6 +115,26 @@ public class MessageServiceImpl implements MessageService {
     @Transactional(readOnly = true)
     public long nombreNonLus(Long utilisateurId) {
         return messageRepository.countByDestinataireIdAndLuFalse(utilisateurId);
+    }
+
+    // ---------- Notifications ----------
+
+    // Nouveau message : notification au destinataire, avec un extrait du texte
+    private void prevenirDestinataire(Message message) {
+        Utilisateur expediteur = message.getExpediteur();
+        String nomExpediteur = expediteur.getPrenom() + " " + expediteur.getNom();
+
+        String texte = message.getContenu().trim();
+        String extrait = texte.length() > TAILLE_EXTRAIT
+                ? texte.substring(0, TAILLE_EXTRAIT) + "..."
+                : texte;
+
+        notificationService.notifier(
+                message.getDestinataire(),
+                TypeNotification.NOUVEAU_MESSAGE,
+                "Nouveau message de " + nomExpediteur,
+                "« " + extrait + " »",
+                null);
     }
 
     // ---------- Méthodes internes ----------
