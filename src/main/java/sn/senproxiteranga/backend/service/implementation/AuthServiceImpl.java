@@ -40,6 +40,19 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final AuthSessionRepository authSessionRepository;
 
+    // Administration : la liste des comptes d'un rôle, les plus anciens d'abord
+    // (même requête que pour la liste des professionnels de l'admin)
+    @Override
+    @Transactional(readOnly = true)
+    public List<UtilisateurResponse> listerUtilisateurs(NomRole role) {
+        if (role == null) {
+            throw new BusinessException("Le rôle est obligatoire : CLIENT ou PROFESSIONNEL");
+        }
+        return utilisateurRepository.findByRoleNomOrderByCreatedAtAsc(role).stream()
+                .map(utilisateurMapper::toResponse)
+                .toList();
+    }
+
     @Override
     public UtilisateurResponse changerStatutCompte(Long id, StatutCompte statutCompte) {
         if (statutCompte == null) {
@@ -52,6 +65,10 @@ public class AuthServiceImpl implements AuthService {
                                 () ->
                                         new ResourceNotFoundException(
                                                 "Utilisateur introuvable : " + id));
+        // Règle : on ne suspend pas un administrateur (sinon il pourrait se bloquer lui-même)
+        if (utilisateur.aRole(NomRole.ADMINISTRATEUR)) {
+            throw new BusinessException("Le compte d'un administrateur ne peut pas être suspendu");
+        }
         utilisateur.setStatutCompte(statutCompte);
         if (statutCompte == StatutCompte.SUSPENDU) {
             authSessionRepository
