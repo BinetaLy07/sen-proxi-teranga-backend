@@ -24,6 +24,9 @@ public class MonCompteMapper {
                 utilisateur.getStatutCompte(),
                 professionnel ? utilisateur.getStatutVerification() : null,
                 professionnel ? utilisateur.getMotifVerification() : null,
+                // Le pro en a besoin pour pré-remplir son formulaire de profil
+                professionnel ? utilisateur.getWhatsapp() : null,
+                professionnel ? utilisateur.isAlerteSmsActive() : null,
                 utilisateur.getAdresse(),
                 zone != null ? zone.getId() : null,
                 zone != null ? zone.getNom() : null,

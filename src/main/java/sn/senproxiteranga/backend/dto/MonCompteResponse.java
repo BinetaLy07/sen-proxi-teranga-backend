@@ -18,6 +18,8 @@ public record MonCompteResponse(
         // Seulement pour un professionnel (null pour un client ou l'admin)
         StatutVerification statutVerification,
         String motifVerification,
+        String whatsapp,
+        Boolean alerteSmsActive,
 
         // Facultatifs
         String adresse,
