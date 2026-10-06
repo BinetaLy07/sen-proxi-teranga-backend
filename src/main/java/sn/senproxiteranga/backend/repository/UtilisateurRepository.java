@@ -26,6 +26,10 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur, Long> 
 
     // Pour l'inscription : ce téléphone est-il déjà utilisé ?
     boolean existsByTelephone(String telephone);
+
+    // Mot de passe oublié : retrouver un compte par son numéro (sans +221)
+    Optional<Utilisateur> findByTelephone(String telephone);
+
     @Query("""
             SELECT DISTINCT p FROM Utilisateur p
             LEFT JOIN p.zones z

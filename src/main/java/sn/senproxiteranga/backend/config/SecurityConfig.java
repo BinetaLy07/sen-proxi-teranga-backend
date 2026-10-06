@@ -45,7 +45,10 @@ public class SecurityConfig {
                                                 "/api/auth/connexion",
                                                 "/api/auth/refresh",
                                                 "/api/auth/inscription/client",
-                                                "/api/auth/inscription/professionnel")
+                                                "/api/auth/inscription/professionnel",
+                                                // Mot de passe oublié : par définition, pas de badge
+                                                "/api/auth/mot-de-passe/oublie",
+                                                "/api/auth/mot-de-passe/reinitialiser")
                                         .permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/admin/utilisateurs")
                                         .hasRole("ADMINISTRATEUR")
