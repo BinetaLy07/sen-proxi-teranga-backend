@@ -4,12 +4,18 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutRendezVous;
 
 import java.time.LocalDateTime;
 
 /**
- * Un rendez-vous proposé par le professionnel pour réaliser les travaux d'une demande.
+ * Une date proposée pour réaliser les travaux d'une demande.
+ *
+ * Règle : c'est le CLIENT qui choisit la première date (le jour et l'heure).
+ * Celui qui propose attend ; c'est l'AUTRE qui répond :
+ * - il accepte  -> la demande passe à PLANIFIEE ;
+ * - ou il propose une autre date -> la date précédente passe à REFUSE.
  *
  * Une demande peut avoir plusieurs rendez-vous : les dates refusées ou reportées
  * sont gardées (historique), un seul est "actif" à la fois (PROPOSE ou ACCEPTE).
@@ -30,6 +36,12 @@ public class RendezVous extends BaseEntity {
     @Column(name = "date_heure", nullable = false)
     private LocalDateTime dateHeure;
 
+    // Qui a proposé cette date : CLIENT ou PROFESSIONNEL (c'est l'autre qui doit répondre).
+    // Vide pour les anciens rendez-vous, créés quand seul le professionnel proposait.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "propose_par", length = 20)
+    private NomRole proposePar;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatutRendezVous statut = StatutRendezVous.PROPOSE;
@@ -44,4 +56,13 @@ public class RendezVous extends BaseEntity {
 
     @Column(name = "date_fin_travaux")
     private LocalDateTime dateFinTravaux;
+
+    /**
+     * Qui a proposé cette date.
+     * On écrit ce getter nous-mêmes (Lombok n'en génère pas un 2e) :
+     * pour un ancien rendez-vous sans auteur, c'était forcément le professionnel.
+     */
+    public NomRole getProposePar() {
+        return proposePar != null ? proposePar : NomRole.PROFESSIONNEL;
+    }
 }

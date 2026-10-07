@@ -1,5 +1,6 @@
 package sn.senproxiteranga.backend.dto;
 
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutDemande;
 import sn.senproxiteranga.backend.domain.enums.StatutRendezVous;
 
@@ -12,8 +13,9 @@ public record RendezVousResponse(
         Long id,
         LocalDateTime dateHeure,
         StatutRendezVous statut,
+        NomRole proposePar,                 // CLIENT ou PROFESSIONNEL : l'autre doit répondre
         String motif,                       // raison du refus ou du report
-        LocalDateTime dateProposition,      // quand le pro a proposé cette date
+        LocalDateTime dateProposition,      // quand cette date a été proposée
         LocalDateTime dateDebutTravaux,
         LocalDateTime dateFinTravaux,
 

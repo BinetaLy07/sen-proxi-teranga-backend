@@ -8,6 +8,9 @@ public enum TypeNotification {
     DEMANDE_REFUSEE,      // au client : le pro refuse
     DEMANDE_EXPIREE,      // au client : le pro n'a pas répondu à temps (action automatique)
     DEVIS_RECU,           // au client : nouveau devis ou nouvelle version
+    RENDEZ_VOUS_PROPOSE,  // à l'autre : une date de rendez-vous est proposée (ou une autre date)
+    RENDEZ_VOUS_ACCEPTE,  // à celui qui a proposé : sa date est acceptée
+    RENDEZ_VOUS_REPORTE,  // à l'autre : le rendez-vous confirmé est reporté
     PAIEMENT_DECLARE,     // au pro : le client dit avoir payé
     PAIEMENT_CONFIRME,    // aux deux : paiement confirmé automatiquement après 48 h
     PROFIL_VERIFIE,       // au pro : validé, correction demandée ou refusé

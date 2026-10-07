@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.RendezVous;
+import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutRendezVous;
 import sn.senproxiteranga.backend.dto.RendezVousRequest;
 import sn.senproxiteranga.backend.dto.RendezVousResponse;
@@ -13,12 +14,13 @@ public class RendezVousMapper {
 
     /**
      * Nouvelle proposition de date pour une demande.
-     * Le statut est PROPOSE : le client doit encore répondre.
+     * Le statut est PROPOSE : l'autre (client ou professionnel) doit encore répondre.
      */
-    public RendezVous toEntity(Demande demande, RendezVousRequest request) {
+    public RendezVous toEntity(Demande demande, RendezVousRequest request, NomRole proposePar) {
         RendezVous rendezVous = new RendezVous();
         rendezVous.setDemande(demande);
         rendezVous.setDateHeure(request.dateHeure());
+        rendezVous.setProposePar(proposePar);
         rendezVous.setStatut(StatutRendezVous.PROPOSE);
         return rendezVous;
     }
@@ -35,6 +37,7 @@ public class RendezVousMapper {
                 rendezVous.getId(),
                 rendezVous.getDateHeure(),
                 rendezVous.getStatut(),
+                rendezVous.getProposePar(),
                 rendezVous.getMotif(),
                 rendezVous.getCreatedAt(),
                 rendezVous.getDateDebutTravaux(),
