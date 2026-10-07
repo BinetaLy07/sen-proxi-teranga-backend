@@ -7,6 +7,11 @@ import lombok.Setter;
 
 // Un message envoyé par un utilisateur à un autre (client <-> professionnel).
 // La date d'envoi est createdAt (dans BaseEntity).
+//
+// Un message peut être rattaché à une DEMANDE : il fait alors partie de la
+// discussion de cette demande (ex : "Je passe demain à 10 h").
+// Sans demande, c'est une "question générale" (ex : le client pose une question
+// à un pro depuis son profil, avant de lui envoyer une demande).
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,6 +28,11 @@ public class Message extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "destinataire_id", nullable = false)
     private Utilisateur destinataire;
+
+    // La demande dont on parle (vide pour une question générale)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "demande_id")
+    private Demande demande;
 
     @Column(nullable = false, length = 1000)
     private String contenu;

@@ -1,8 +1,10 @@
 package sn.senproxiteranga.backend.service.implementation;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.senproxiteranga.backend.domain.Demande;
 import sn.senproxiteranga.backend.domain.Message;
 import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.NomRole;
@@ -40,6 +42,10 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
     private final NotificationService notificationService;
 
+    // =====================================================================
+    //               QUESTIONS GÉNÉRALES (messages sans demande)
+    // =====================================================================
+
     @Override
     public MessageResponse envoyer(Long expediteurId, Long destinataireId, MessageRequest request) {
         // Règle 2 : on ne s'écrit pas à soi-même
@@ -59,43 +65,8 @@ public class MessageServiceImpl implements MessageService {
                     "Les messages s'échangent uniquement entre un client et un professionnel");
         }
 
-        // Règle 6 (anti-spam) : on regarde AVANT d'enregistrer si le destinataire
-        // a déjà des messages non lus de cet expéditeur. Si oui, il est déjà prévenu.
-        boolean dejaPrevenu = !messageRepository
-                .findByExpediteurIdAndDestinataireIdAndLuFalse(expediteurId, destinataireId)
-                .isEmpty();
-
         // Règle 1 (texte non vide, 1000 caractères max) : vérifiée par @Valid sur MessageRequest
-        Message message = messageMapper.toEntity(expediteur, destinataire, request.contenu());
-        Message enregistre = messageRepository.save(message);
-
-        if (!dejaPrevenu) {
-            prevenirDestinataire(enregistre);
-        }
-        return messageMapper.toResponse(enregistre);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ConversationResponse> mesConversations(Long utilisateurId) {
-        // Les messages arrivent du plus récent au plus ancien : le 1er message rencontré
-        // avec chaque interlocuteur est donc le DERNIER de cette conversation
-        Map<Long, ConversationResponse> conversations = new LinkedHashMap<>();
-
-        for (Message message : messageRepository.tousLesMessagesDe(utilisateurId)) {
-            Utilisateur interlocuteur = message.getExpediteur().getId().equals(utilisateurId)
-                    ? message.getDestinataire()
-                    : message.getExpediteur();
-
-            if (!conversations.containsKey(interlocuteur.getId())) {
-                long nonLus = messageRepository
-                        .findByExpediteurIdAndDestinataireIdAndLuFalse(interlocuteur.getId(), utilisateurId)
-                        .size();
-                conversations.put(interlocuteur.getId(),
-                        messageMapper.toConversation(interlocuteur, message, utilisateurId, nonLus));
-            }
-        }
-        return new ArrayList<>(conversations.values());
+        return enregistrer(expediteur, destinataire, null, request.contenu());
     }
 
     @Override
@@ -103,12 +74,87 @@ public class MessageServiceImpl implements MessageService {
         chercherUtilisateur(interlocuteurId);
 
         // Ouvrir la conversation = lire les messages reçus : ils deviennent "lus"
-        messageRepository.findByExpediteurIdAndDestinataireIdAndLuFalse(interlocuteurId, utilisateurId)
+        messageRepository
+                .findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(interlocuteurId, utilisateurId)
                 .forEach(message -> message.setLu(true));
 
-        return messageRepository.conversation(utilisateurId, interlocuteurId).stream()
+        return messageRepository.conversationGenerale(utilisateurId, interlocuteurId).stream()
                 .map(messageMapper::toResponse)
                 .toList();
+    }
+
+    // =====================================================================
+    //                      DISCUSSION D'UNE DEMANDE
+    // =====================================================================
+
+    @Override
+    public MessageResponse envoyerDansDemande(Long expediteurId, Long demandeId, MessageRequest request) {
+        Demande demande = chercherDemande(demandeId);
+        Utilisateur client = demande.getClient();
+        Utilisateur pro = demande.getProfessionnel();
+
+        // Règle 7 : seuls le client et le professionnel de la demande y écrivent.
+        // Le message va toujours à "l'autre".
+        if (client.getId().equals(expediteurId)) {
+            return enregistrer(client, pro, demande, request.contenu());
+        }
+        if (pro.getId().equals(expediteurId)) {
+            return enregistrer(pro, client, demande, request.contenu());
+        }
+        throw new AccessDeniedException(
+                "Seuls le client et le professionnel de cette demande peuvent y écrire");
+    }
+
+    @Override
+    public List<MessageResponse> messagesDeLaDemande(Long utilisateurId, Long demandeId) {
+        Demande demande = chercherDemande(demandeId);
+        boolean participant = demande.getClient().getId().equals(utilisateurId)
+                || demande.getProfessionnel().getId().equals(utilisateurId);
+
+        if (participant) {
+            // Ouvrir la discussion = lire les messages reçus : ils deviennent "lus"
+            messageRepository.findByDemandeIdAndDestinataireIdAndLuFalse(demandeId, utilisateurId)
+                    .forEach(message -> message.setLu(true));
+        } else if (!chercherUtilisateur(utilisateurId).aRole(NomRole.ADMINISTRATEUR)) {
+            // Règle 8 : à part eux, seul l'administrateur peut lire (ex : pour un litige)
+            throw new AccessDeniedException("Vous ne participez pas à cette demande");
+        }
+
+        return messageRepository.findByDemandeIdOrderByCreatedAtAscIdAsc(demandeId).stream()
+                .map(messageMapper::toResponse)
+                .toList();
+    }
+
+    // =====================================================================
+    //                          POUR TOUT LE MONDE
+    // =====================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationResponse> mesConversations(Long utilisateurId) {
+        // Une conversation = une personne + une demande (ou "question générale").
+        // Les messages arrivent du plus récent au plus ancien : le 1er message rencontré
+        // pour chaque conversation est donc son DERNIER message.
+        Map<String, ConversationResponse> conversations = new LinkedHashMap<>();
+
+        for (Message message : messageRepository.tousLesMessagesDe(utilisateurId)) {
+            Utilisateur interlocuteur = message.getExpediteur().getId().equals(utilisateurId)
+                    ? message.getDestinataire()
+                    : message.getExpediteur();
+            Demande demande = message.getDemande();
+            String cle = interlocuteur.getId() + "-" + (demande != null ? demande.getId() : "general");
+
+            if (!conversations.containsKey(cle)) {
+                long nonLus = (demande != null)
+                        ? messageRepository.findByDemandeIdAndDestinataireIdAndLuFalse(
+                                demande.getId(), utilisateurId).size()
+                        : messageRepository.findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
+                                interlocuteur.getId(), utilisateurId).size();
+                conversations.put(cle,
+                        messageMapper.toConversation(interlocuteur, message, utilisateurId, nonLus));
+            }
+        }
+        return new ArrayList<>(conversations.values());
     }
 
     @Override
@@ -117,9 +163,34 @@ public class MessageServiceImpl implements MessageService {
         return messageRepository.countByDestinataireIdAndLuFalse(utilisateurId);
     }
 
-    // ---------- Notifications ----------
+    // =====================================================================
+    //                         MÉTHODES INTERNES
+    // =====================================================================
 
-    // Nouveau message : notification au destinataire, avec un extrait du texte
+    // Enregistre le message, puis prévient le destinataire (règle 6)
+    private MessageResponse enregistrer(Utilisateur expediteur, Utilisateur destinataire,
+                                        Demande demande, String contenu) {
+        // Règle 6 (anti-spam) : on regarde AVANT d'enregistrer si le destinataire a déjà
+        // des messages non lus dans CETTE conversation. Si oui, il est déjà prévenu.
+        // (Dans une demande, les messages reçus viennent forcément de l'autre participant.)
+        List<Message> dejaNonLus = (demande != null)
+                ? messageRepository.findByDemandeIdAndDestinataireIdAndLuFalse(
+                        demande.getId(), destinataire.getId())
+                : messageRepository.findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
+                        expediteur.getId(), destinataire.getId());
+        boolean dejaPrevenu = !dejaNonLus.isEmpty();
+
+        Message enregistre = messageRepository.save(
+                messageMapper.toEntity(expediteur, destinataire, demande, contenu));
+
+        if (!dejaPrevenu) {
+            prevenirDestinataire(enregistre);
+        }
+        return messageMapper.toResponse(enregistre);
+    }
+
+    // Nouveau message : notification au destinataire, avec un extrait du texte.
+    // Si le message parle d'une demande, la notification ouvre cette demande.
     private void prevenirDestinataire(Message message) {
         Utilisateur expediteur = message.getExpediteur();
         String nomExpediteur = expediteur.getPrenom() + " " + expediteur.getNom();
@@ -129,15 +200,18 @@ public class MessageServiceImpl implements MessageService {
                 ? texte.substring(0, TAILLE_EXTRAIT) + "..."
                 : texte;
 
+        Demande demande = message.getDemande();
+        String texteNotification = (demande != null)
+                ? "« " + extrait + " » (demande : " + demande.getService().getTitre() + ")"
+                : "« " + extrait + " »";
+
         notificationService.notifier(
                 message.getDestinataire(),
                 TypeNotification.NOUVEAU_MESSAGE,
                 "Nouveau message de " + nomExpediteur,
-                "« " + extrait + " »",
-                null);
+                texteNotification,
+                demande != null ? demande.getId() : null);
     }
-
-    // ---------- Méthodes internes ----------
 
     // Règle 4 : un client n'écrit qu'à un professionnel validé et actif
     private void verifierProDisponible(Utilisateur pro) {
@@ -163,5 +237,10 @@ public class MessageServiceImpl implements MessageService {
     private Utilisateur chercherUtilisateur(Long id) {
         return utilisateurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + id));
+    }
+
+    private Demande chercherDemande(Long id) {
+        return demandeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable : " + id));
     }
 }

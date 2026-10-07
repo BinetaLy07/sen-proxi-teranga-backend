@@ -9,15 +9,32 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    // Tous les messages échangés entre 2 utilisateurs, dans les 2 sens,
+    // ---------- Questions générales (messages SANS demande) ----------
+
+    // Les questions générales échangées entre 2 utilisateurs, dans les 2 sens,
     // du plus ancien au plus récent (comme dans WhatsApp)
     @Query("""
             SELECT m FROM Message m
-            WHERE (m.expediteur.id = :a AND m.destinataire.id = :b)
-               OR (m.expediteur.id = :b AND m.destinataire.id = :a)
+            WHERE m.demande IS NULL
+              AND ((m.expediteur.id = :a AND m.destinataire.id = :b)
+                OR (m.expediteur.id = :b AND m.destinataire.id = :a))
             ORDER BY m.createdAt ASC, m.id ASC
             """)
-    List<Message> conversation(@Param("a") Long utilisateurA, @Param("b") Long utilisateurB);
+    List<Message> conversationGenerale(@Param("a") Long utilisateurA, @Param("b") Long utilisateurB);
+
+    // Les questions générales de "expediteur" à "destinataire" pas encore lues
+    List<Message> findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
+            Long expediteurId, Long destinataireId);
+
+    // ---------- Discussion d'une demande ----------
+
+    // Tous les messages d'une demande, du plus ancien au plus récent
+    List<Message> findByDemandeIdOrderByCreatedAtAscIdAsc(Long demandeId);
+
+    // Les messages d'une demande reçus par "destinataire" et pas encore lus
+    List<Message> findByDemandeIdAndDestinataireIdAndLuFalse(Long demandeId, Long destinataireId);
+
+    // ---------- Pour tout le monde ----------
 
     // Tous les messages envoyés OU reçus par un utilisateur, les plus récents d'abord
     // (sert à construire la liste de ses conversations)
@@ -27,9 +44,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             ORDER BY m.createdAt DESC, m.id DESC
             """)
     List<Message> tousLesMessagesDe(@Param("id") Long utilisateurId);
-
-    // Les messages que "expediteur" a envoyés à "destinataire" et qui ne sont pas encore lus
-    List<Message> findByExpediteurIdAndDestinataireIdAndLuFalse(Long expediteurId, Long destinataireId);
 
     // Nombre total de messages non lus reçus par un utilisateur (pour la pastille rouge)
     long countByDestinataireIdAndLuFalse(Long destinataireId);

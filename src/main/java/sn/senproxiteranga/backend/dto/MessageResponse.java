@@ -10,6 +10,7 @@ public record MessageResponse(
         String destinataireNom,
         String contenu,
         LocalDateTime dateEnvoi,
-        boolean lu
+        boolean lu,
+        Long demandeId          // la demande dont on parle (null : question générale)
 ) {
 }
