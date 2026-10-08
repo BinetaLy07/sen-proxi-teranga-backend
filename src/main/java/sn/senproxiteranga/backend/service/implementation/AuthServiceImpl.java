@@ -10,6 +10,7 @@ import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.Zone;
 import sn.senproxiteranga.backend.domain.enums.NomRole;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
+import sn.senproxiteranga.backend.domain.enums.TypeZone;
 import sn.senproxiteranga.backend.dto.CreationUtilisateurRequest;
 import sn.senproxiteranga.backend.dto.InscriptionClientRequest;
 import sn.senproxiteranga.backend.dto.InscriptionProfessionnelRequest;
@@ -112,7 +113,8 @@ public class AuthServiceImpl implements AuthService {
                                 request.motDePasse(),
                                 request.cguAcceptees(),
                                 request.adresse(),
-                                request.zoneId()));
+                                request.zoneId(),
+                                null));
         utilisateur.setRole(
                 roleRepository
                         .findByNom(NomRole.ADMINISTRATEUR)
@@ -146,7 +148,8 @@ public class AuthServiceImpl implements AuthService {
                             request.motDePasse(),
                             request.cguAcceptees(),
                             request.adresse(),
-                            request.zoneId()));
+                            request.zoneId(),
+                            null));
         }
         if (request.role() == NomRole.PROFESSIONNEL) {
             if (request.metier() == null || request.metier().isBlank()) {
@@ -164,7 +167,8 @@ public class AuthServiceImpl implements AuthService {
                             request.competences(),
                             request.description(),
                             request.whatsapp(),
-                            request.zoneIds()));
+                            request.zoneIds(),
+                            null));
         }
         throw new BusinessException(
                 "L'inscription publique accepte uniquement CLIENT ou PROFESSIONNEL");
@@ -183,7 +187,10 @@ public class AuthServiceImpl implements AuthService {
         client.setMotDePasseHache(passwordEncoder.encode(request.motDePasse()));
         enregistrerAcceptationCgu(client);
 
-        if (request.zoneId() != null) {
+        if (request.quartier() != null && !request.quartier().isBlank()) {
+            // Le quartier écrit par le client : retrouvé, ou ajouté s'il est nouveau
+            client.setZone(trouverOuCreerQuartier(request.quartier()));
+        } else if (request.zoneId() != null) {
             Zone zone =
                     zoneRepository
                             .findById(request.zoneId())
@@ -210,6 +217,15 @@ public class AuthServiceImpl implements AuthService {
         pro.setMotDePasseHache(passwordEncoder.encode(request.motDePasse()));
         enregistrerAcceptationCgu(pro);
 
+        // Les zones écrites par le pro ("Médina, Fass") : retrouvées, ou ajoutées si nouvelles
+        if (request.zones() != null && !request.zones().isBlank()) {
+            for (String nom : request.zones().split("[,;]")) {
+                if (!nom.isBlank()) {
+                    pro.getZones().add(trouverOuCreerQuartier(nom));
+                }
+            }
+        }
+
         List<Long> zoneIds = request.zoneIds();
         if (zoneIds != null && !zoneIds.isEmpty()) {
             List<Zone> zones = zoneRepository.findAllById(zoneIds);
@@ -223,6 +239,28 @@ public class AuthServiceImpl implements AuthService {
     }
 
     // ---------- Méthodes internes ----------
+
+    /**
+     * Un quartier écrit par l'utilisateur (ex : " sacré-cœur 3 ").
+     * S'il existe déjà (même nom, majuscules ignorées), on le réutilise ;
+     * sinon on l'ajoute à la liste des quartiers. Ainsi la recherche par quartier
+     * continue de marcher, et la liste se remplit avec les vrais quartiers des utilisateurs.
+     */
+    private Zone trouverOuCreerQuartier(String nomEcrit) {
+        String nom = nomEcrit.trim().replaceAll("\\s+", " ");
+        if (nom.length() > 100) {
+            nom = nom.substring(0, 100);
+        }
+        String nomFinal = nom;
+        return zoneRepository
+                .findFirstByNomIgnoreCaseAndType(nomFinal, TypeZone.QUARTIER)
+                .orElseGet(() -> {
+                    Zone quartier = new Zone();
+                    quartier.setNom(nomFinal);
+                    quartier.setType(TypeZone.QUARTIER);
+                    return zoneRepository.save(quartier);
+                });
+    }
 
     // Règle : l'acceptation des CGU est obligatoire
     private void verifierCgu(boolean cguAcceptees) {

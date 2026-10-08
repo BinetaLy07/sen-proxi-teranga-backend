@@ -32,8 +32,17 @@ public record InscriptionClientRequest(
         @AssertTrue(message = "Vous devez accepter les conditions d'utilisation (CGU)")
         boolean cguAcceptees,
 
-        // Facultatifs
+        // Où habite le client (obligatoire)
+        @NotBlank(message = "L'adresse est obligatoire")
+        @Size(max = 255, message = "L'adresse ne doit pas dépasser 255 caractères")
         String adresse,
-        Long zoneId
+
+        // Ancienne façon : le quartier choisi dans une liste (facultatif)
+        Long zoneId,
+
+        // Nouvelle façon : le quartier écrit par le client, ex : "Sacré-Cœur 3" (obligatoire)
+        @NotBlank(message = "Le quartier est obligatoire")
+        @Size(max = 100, message = "Le quartier ne doit pas dépasser 100 caractères")
+        String quartier
 ) {
 }

@@ -5,8 +5,12 @@ import sn.senproxiteranga.backend.domain.Zone;
 import sn.senproxiteranga.backend.domain.enums.TypeZone;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
+
+    // Inscription : retrouver un quartier par son nom écrit (sans tenir compte des majuscules)
+    Optional<Zone> findFirstByNomIgnoreCaseAndType(String nom, TypeZone type);
 
     // Une zone de ce type avec ce nom existe-t-elle déjà ?
     // (sert pour les RÉGIONS et les COMMUNES)

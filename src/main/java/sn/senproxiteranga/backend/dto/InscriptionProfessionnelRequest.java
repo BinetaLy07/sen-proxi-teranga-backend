@@ -42,13 +42,21 @@ public record InscriptionProfessionnelRequest(
 
         String competences,
 
+        @NotBlank(message = "La description de l'activité est obligatoire")
+        @Size(max = 2000, message = "La description ne doit pas dépasser 2000 caractères")
         String description,
 
         @Pattern(regexp = "^(\\+221)?7[05678]\\d{7}$",
                 message = "Numéro WhatsApp invalide (ex : 771234567)")
         String whatsapp,
 
-        // Les zones où il travaille (facultatif à l'inscription)
-        List<Long> zoneIds
+        // Ancienne façon : les zones choisies dans une liste (facultatif)
+        List<Long> zoneIds,
+
+        // Nouvelle façon : les zones écrites par le pro, séparées par des virgules,
+        // ex : "Médina, Fass, Grand Yoff" (obligatoire)
+        @NotBlank(message = "Écrivez au moins une zone d'intervention")
+        @Size(max = 500, message = "Les zones ne doivent pas dépasser 500 caractères")
+        String zones
 ) {
 }
