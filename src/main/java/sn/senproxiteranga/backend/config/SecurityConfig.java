@@ -78,6 +78,12 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/api/categories/**", "/api/zones/**")
                                         .hasRole("ADMINISTRATEUR")
+                                        // Téléphone et WhatsApp d'un pro : toute personne
+                                        // connectée (placé AVANT la règle /api/professionnels/**
+                                        // qui réserve le reste au pro lui-même)
+                                        .requestMatchers(
+                                                HttpMethod.GET, "/api/professionnels/*/contact")
+                                        .authenticated()
                                         .requestMatchers(
                                                 "/api/clients/**",
                                                 "/api/professionnels/**",

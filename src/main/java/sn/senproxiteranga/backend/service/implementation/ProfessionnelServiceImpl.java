@@ -11,6 +11,7 @@ import sn.senproxiteranga.backend.domain.Realisation;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.domain.enums.StatutVerification;
 import sn.senproxiteranga.backend.dto.AvisResponse;
+import sn.senproxiteranga.backend.dto.ContactProResponse;
 import sn.senproxiteranga.backend.dto.ModifierProfilRequest;
 import sn.senproxiteranga.backend.dto.ProfessionnelResumeResponse;
 import sn.senproxiteranga.backend.dto.ProfilProfessionnelResponse;
@@ -87,6 +88,19 @@ public class ProfessionnelServiceImpl implements ProfessionnelService {
             throw new ResourceNotFoundException("Professionnel introuvable : " + professionnelId);
         }
         return construireProfil(pro);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ContactProResponse contact(Long professionnelId) {
+        Utilisateur pro = chercherPro(professionnelId);
+
+        // Même règle que le profil public : un pro non validé ou suspendu n'est pas joignable
+        if (pro.getStatutVerification() != StatutVerification.VALIDE
+                || pro.getStatutCompte() == StatutCompte.SUSPENDU) {
+            throw new ResourceNotFoundException("Professionnel introuvable : " + professionnelId);
+        }
+        return new ContactProResponse(pro.getId(), pro.getTelephone(), pro.getWhatsapp());
     }
 
     // =====================================================================

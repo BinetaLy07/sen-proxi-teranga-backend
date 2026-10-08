@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import sn.senproxiteranga.backend.dto.ContactProResponse;
 import sn.senproxiteranga.backend.dto.ModifierProfilRequest;
 import sn.senproxiteranga.backend.dto.ProfessionnelResumeResponse;
 import sn.senproxiteranga.backend.dto.ProfilProfessionnelResponse;
@@ -44,6 +45,13 @@ public class ProfessionnelController {
     @GetMapping("/professionnels/{proId}/profil")
     public ProfilProfessionnelResponse profilPublic(@PathVariable Long proId) {
         return professionnelService.profilPublic(proId);
+    }
+
+    // Téléphone et WhatsApp, pour les boutons « Appeler » et « WhatsApp » du profil.
+    // Réservé aux personnes connectées (règle dans SecurityConfig).
+    @GetMapping("/professionnels/{proId}/contact")
+    public ContactProResponse contact(@PathVariable Long proId) {
+        return professionnelService.contact(proId);
     }
 
     // ===================== Espace du professionnel =====================

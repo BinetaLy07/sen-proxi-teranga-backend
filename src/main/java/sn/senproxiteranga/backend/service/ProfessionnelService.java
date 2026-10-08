@@ -2,6 +2,7 @@ package sn.senproxiteranga.backend.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
+import sn.senproxiteranga.backend.dto.ContactProResponse;
 import sn.senproxiteranga.backend.dto.ModifierProfilRequest;
 import sn.senproxiteranga.backend.dto.ProfessionnelResumeResponse;
 import sn.senproxiteranga.backend.dto.ProfilProfessionnelResponse;
@@ -21,6 +22,9 @@ public interface ProfessionnelService {
 
     // Profil complet d'un professionnel validé (visible par tous)
     ProfilProfessionnelResponse profilPublic(Long professionnelId);
+
+    // Téléphone et WhatsApp d'un professionnel validé (seulement pour une personne connectée)
+    ContactProResponse contact(Long professionnelId);
 
     // ===================== Espace du professionnel =====================
 
