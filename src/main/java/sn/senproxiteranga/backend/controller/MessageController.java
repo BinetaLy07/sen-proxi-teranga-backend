@@ -2,15 +2,19 @@ package sn.senproxiteranga.backend.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sn.senproxiteranga.backend.dto.ConversationResponse;
 import sn.senproxiteranga.backend.dto.MessageRequest;
 import sn.senproxiteranga.backend.dto.MessageResponse;
 import sn.senproxiteranga.backend.security.SessionPrincipal;
 import sn.senproxiteranga.backend.service.MessageService;
+import sn.senproxiteranga.backend.service.MessageService.FichierAudio;
 
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,9 @@ import java.util.Map;
 // - la discussion d'une DEMANDE : /api/demandes/{id}/messages
 //   (la sécurité vérifie déjà que je suis le client ou le pro de cette demande) ;
 // - les questions générales, sans demande : /api/messages/{destinataireId}
+//
+// Deux sortes de messages : écrits (JSON {"contenu": ...}) et vocaux
+// (envoi de fichier "multipart/form-data" : champ "fichier" = le son, champ "duree" = secondes).
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -37,6 +44,17 @@ public class MessageController {
                                                               @PathVariable Long demandeId,
                                                               @Valid @RequestBody MessageRequest request) {
         MessageResponse envoye = messageService.envoyerDansDemande(moi.utilisateurId(), demandeId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(envoye);
+    }
+
+    // Message vocal dans la discussion d'une demande : POST /api/demandes/19/messages/audio
+    @PostMapping(value = "/demandes/{demandeId}/messages/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MessageResponse> envoyerAudioDansDemande(@AuthenticationPrincipal SessionPrincipal moi,
+                                                                   @PathVariable Long demandeId,
+                                                                   @RequestParam("fichier") MultipartFile fichier,
+                                                                   @RequestParam("duree") int duree) {
+        MessageResponse envoye = messageService.envoyerAudioDansDemande(
+                moi.utilisateurId(), demandeId, fichier, duree);
         return ResponseEntity.status(HttpStatus.CREATED).body(envoye);
     }
 
@@ -58,6 +76,16 @@ public class MessageController {
         return ResponseEntity.status(HttpStatus.CREATED).body(envoye);
     }
 
+    // Message vocal sans demande : POST /api/messages/2/audio
+    @PostMapping(value = "/messages/{destinataireId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MessageResponse> envoyerAudio(@AuthenticationPrincipal SessionPrincipal moi,
+                                                        @PathVariable Long destinataireId,
+                                                        @RequestParam("fichier") MultipartFile fichier,
+                                                        @RequestParam("duree") int duree) {
+        MessageResponse envoye = messageService.envoyerAudio(moi.utilisateurId(), destinataireId, fichier, duree);
+        return ResponseEntity.status(HttpStatus.CREATED).body(envoye);
+    }
+
     // Ouvrir les questions générales avec quelqu'un (les messages reçus deviennent "lus")
     @GetMapping("/messages/avec/{interlocuteurId}")
     public List<MessageResponse> conversation(@AuthenticationPrincipal SessionPrincipal moi,
@@ -66,6 +94,33 @@ public class MessageController {
     }
 
     // ===================== Pour tout le monde =====================
+
+    // Supprimer MON message (pendant 24 h) : DELETE /api/messages/57
+    // Réponse : le message, devenu « Ce message a été supprimé »
+    @DeleteMapping("/messages/{messageId}")
+    public MessageResponse supprimer(@AuthenticationPrincipal SessionPrincipal moi,
+                                     @PathVariable Long messageId) {
+        return messageService.supprimer(moi.utilisateurId(), messageId);
+    }
+
+    // « Supprimer pour moi » : DELETE /api/messages/57/pour-moi
+    // (le message disparaît seulement de MON écran ; l'autre et l'administrateur le voient toujours)
+    @DeleteMapping("/messages/{messageId}/pour-moi")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void masquerPourMoi(@AuthenticationPrincipal SessionPrincipal moi,
+                               @PathVariable Long messageId) {
+        messageService.masquerPourMoi(moi.utilisateurId(), messageId);
+    }
+
+    // Écouter un message vocal : GET /api/messages/57/audio (renvoie le son lui-même)
+    @GetMapping("/messages/{messageId}/audio")
+    public ResponseEntity<Resource> ecouter(@AuthenticationPrincipal SessionPrincipal moi,
+                                            @PathVariable Long messageId) {
+        FichierAudio audio = messageService.chargerAudio(moi.utilisateurId(), messageId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(audio.contentType()))
+                .body(audio.ressource());
+    }
 
     // Ma liste de conversations (une par demande, plus les questions générales)
     @GetMapping("/messages/conversations")
