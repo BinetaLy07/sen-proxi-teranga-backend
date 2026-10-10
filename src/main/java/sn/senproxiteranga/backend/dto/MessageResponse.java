@@ -17,6 +17,7 @@ public record MessageResponse(
         Integer audioDuree,     // durée du vocal en secondes (null pour un texte)
         // Le son d'un vocal se récupère avec GET /api/messages/{id}/audio
         boolean supprime,       // l'expéditeur a supprimé ce message
-        LocalDateTime dateSuppression
+        LocalDateTime dateSuppression,
+        String demandeTitre     // le titre de la demande dont on parle (null : question générale)
 ) {
 }

@@ -9,22 +9,21 @@ import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    // ---------- Questions générales (messages SANS demande) ----------
+    // ---------- Une discussion = une personne (comme WhatsApp) ----------
 
-    // Les questions générales échangées entre 2 utilisateurs, dans les 2 sens,
-    // du plus ancien au plus récent (comme dans WhatsApp)
+    // TOUS les messages échangés entre 2 utilisateurs (questions générales ET messages
+    // des demandes), dans les 2 sens, du plus ancien au plus récent.
+    // Chaque message garde la demande dont il parle (ou aucune).
     @Query("""
             SELECT m FROM Message m
-            WHERE m.demande IS NULL
-              AND ((m.expediteur.id = :a AND m.destinataire.id = :b)
-                OR (m.expediteur.id = :b AND m.destinataire.id = :a))
+            WHERE (m.expediteur.id = :a AND m.destinataire.id = :b)
+               OR (m.expediteur.id = :b AND m.destinataire.id = :a)
             ORDER BY m.createdAt ASC, m.id ASC
             """)
-    List<Message> conversationGenerale(@Param("a") Long utilisateurA, @Param("b") Long utilisateurB);
+    List<Message> discussionAvec(@Param("a") Long utilisateurA, @Param("b") Long utilisateurB);
 
-    // Les questions générales de "expediteur" à "destinataire" pas encore lues
-    List<Message> findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
-            Long expediteurId, Long destinataireId);
+    // Les messages de "expediteur" à "destinataire" pas encore lus (toutes demandes confondues)
+    List<Message> findByExpediteurIdAndDestinataireIdAndLuFalse(Long expediteurId, Long destinataireId);
 
     // ---------- Discussion d'une demande ----------
 

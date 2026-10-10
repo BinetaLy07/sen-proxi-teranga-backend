@@ -2,10 +2,10 @@ package sn.senproxiteranga.backend.dto;
 
 import java.time.LocalDateTime;
 
-// Une conversation dans la liste : avec qui, à propos de quelle demande,
-// le dernier message, et combien de non lus.
-// Avec la même personne, il y a une conversation PAR demande,
-// plus éventuellement une "question générale" (demandeId = null).
+// Une conversation dans la liste : avec qui, le dernier message, et combien de non lus.
+// UNE conversation par personne (comme WhatsApp) : les questions générales et les messages
+// de toutes les demandes avec cette personne sont ensemble.
+// demandeId / demandeTitre : la demande dont parle le DERNIER message (null : question générale).
 public record ConversationResponse(
         Long interlocuteurId,
         String interlocuteurNom,

@@ -61,7 +61,8 @@ public class MessageMapper {
                 type.name(),
                 masquer ? null : message.getAudioDuree(),
                 message.isSupprime(),
-                message.getDateSuppression()
+                message.getDateSuppression(),
+                message.getDemande() != null ? message.getDemande().getService().getTitre() : null
         );
     }
 

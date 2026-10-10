@@ -94,12 +94,14 @@ public class MessageServiceImpl implements MessageService {
     public List<MessageResponse> conversation(Long utilisateurId, Long interlocuteurId) {
         chercherUtilisateur(interlocuteurId);
 
-        // Ouvrir la conversation = lire les messages reçus : ils deviennent "lus"
+        // Une discussion = une personne : on renvoie TOUS les messages avec elle
+        // (questions générales + messages des demandes), chacun avec sa demande.
+        // Ouvrir la discussion = lire les messages reçus : ils deviennent "lus"
         messageRepository
-                .findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(interlocuteurId, utilisateurId)
+                .findByExpediteurIdAndDestinataireIdAndLuFalse(interlocuteurId, utilisateurId)
                 .forEach(message -> message.setLu(true));
 
-        return messageRepository.conversationGenerale(utilisateurId, interlocuteurId).stream()
+        return messageRepository.discussionAvec(utilisateurId, interlocuteurId).stream()
                 .filter(message -> !message.estMasquePour(utilisateurId))   // « supprimés pour moi »
                 .map(messageMapper::toResponse)
                 .toList();
@@ -225,10 +227,10 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional(readOnly = true)
     public List<ConversationResponse> mesConversations(Long utilisateurId) {
-        // Une conversation = une personne + une demande (ou "question générale").
+        // Une conversation = une personne (toutes ses demandes et questions générales ensemble).
         // Les messages arrivent du plus récent au plus ancien : le 1er message rencontré
-        // pour chaque conversation est donc son DERNIER message.
-        Map<String, ConversationResponse> conversations = new LinkedHashMap<>();
+        // pour chaque personne est donc son DERNIER message.
+        Map<Long, ConversationResponse> conversations = new LinkedHashMap<>();
 
         for (Message message : messageRepository.tousLesMessagesDe(utilisateurId)) {
             // Les messages « supprimés pour moi » ne comptent pas (ni comme dernier message)
@@ -238,15 +240,12 @@ public class MessageServiceImpl implements MessageService {
             Utilisateur interlocuteur = message.getExpediteur().getId().equals(utilisateurId)
                     ? message.getDestinataire()
                     : message.getExpediteur();
-            Demande demande = message.getDemande();
-            String cle = interlocuteur.getId() + "-" + (demande != null ? demande.getId() : "general");
+            Long cle = interlocuteur.getId();
 
             if (!conversations.containsKey(cle)) {
-                long nonLus = (demande != null)
-                        ? messageRepository.findByDemandeIdAndDestinataireIdAndLuFalse(
-                                demande.getId(), utilisateurId).size()
-                        : messageRepository.findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
-                                interlocuteur.getId(), utilisateurId).size();
+                long nonLus = messageRepository
+                        .findByExpediteurIdAndDestinataireIdAndLuFalse(interlocuteur.getId(), utilisateurId)
+                        .size();
                 conversations.put(cle,
                         messageMapper.toConversation(interlocuteur, message, utilisateurId, nonLus));
             }
@@ -328,16 +327,12 @@ public class MessageServiceImpl implements MessageService {
     private MessageResponse enregistrer(Message nouveau) {
         Utilisateur expediteur = nouveau.getExpediteur();
         Utilisateur destinataire = nouveau.getDestinataire();
-        Demande demande = nouveau.getDemande();
 
         // Règle 6 (anti-spam) : on regarde AVANT d'enregistrer si le destinataire a déjà
-        // des messages non lus dans CETTE conversation. Si oui, il est déjà prévenu.
-        // (Dans une demande, les messages reçus viennent forcément de l'autre participant.)
-        List<Message> dejaNonLus = (demande != null)
-                ? messageRepository.findByDemandeIdAndDestinataireIdAndLuFalse(
-                        demande.getId(), destinataire.getId())
-                : messageRepository.findByExpediteurIdAndDestinataireIdAndDemandeIsNullAndLuFalse(
-                        expediteur.getId(), destinataire.getId());
+        // des messages non lus de cet expéditeur (une discussion = une personne).
+        // Si oui, il est déjà prévenu.
+        List<Message> dejaNonLus = messageRepository
+                .findByExpediteurIdAndDestinataireIdAndLuFalse(expediteur.getId(), destinataire.getId());
         boolean dejaPrevenu = !dejaNonLus.isEmpty();
 
         Message enregistre = messageRepository.save(nouveau);
