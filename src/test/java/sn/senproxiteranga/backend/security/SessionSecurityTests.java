@@ -9,6 +9,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import sn.senproxiteranga.backend.mapper.UtilisateurMapper;
 import sn.senproxiteranga.backend.domain.*;
 import sn.senproxiteranga.backend.domain.enums.*;
 import sn.senproxiteranga.backend.dto.ConnexionRequest;
@@ -24,7 +25,7 @@ class SessionSecurityTests {
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
 
     private SessionService service() {
-        SessionService service = new SessionService(sessions, users, encoder);
+        SessionService service = new SessionService(sessions, users, encoder, new UtilisateurMapper());
         ReflectionTestUtils.setField(service, "accessTtl", Duration.ofMinutes(15));
         ReflectionTestUtils.setField(service, "refreshTtl", Duration.ofDays(7));
         return service;

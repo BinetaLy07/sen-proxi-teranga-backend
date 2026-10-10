@@ -52,10 +52,28 @@ public class UtilisateurMapper {
                 utilisateur.getCreatedAt());
     }
 
-    // Garde le numéro sans l'indicatif +221 : "+221771234567" -> "771234567"
+    // Garde le numéro sans l'indicatif ni les espaces :
+    // "+221771234567", "00221 77 123 45 67", "77.123.45.67" -> "771234567"
     public String normaliserTelephone(String telephone) {
-        String t = telephone.trim();
-        return t.startsWith("+221") ? t.substring(4) : t;
+        String t = telephone.trim().replaceAll("[\\s.\\-()]", "");
+        if (t.startsWith("+221")) {
+            return t.substring(4);
+        }
+        if (t.startsWith("00221")) {
+            return t.substring(5);
+        }
+        if (t.startsWith("221") && t.length() == 12) {
+            return t.substring(3);
+        }
+        return t;
+    }
+
+    // Un email facultatif : "  Awa@Gmail.com " -> "awa@gmail.com" ; vide -> null (pas d'email)
+    public String normaliserEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        return email.trim().toLowerCase();
     }
 
     // ---------- Méthodes internes ----------
@@ -65,7 +83,7 @@ public class UtilisateurMapper {
         u.setPrenom(prenom.trim());
         u.setNom(nom.trim());
         u.setTelephone(normaliserTelephone(telephone));
-        u.setEmail(email.trim().toLowerCase());
+        u.setEmail(normaliserEmail(email));
     }
 
     private String roleDe(Utilisateur utilisateur) {

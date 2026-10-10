@@ -34,7 +34,8 @@ public class Utilisateur extends BaseEntity {
     @Column(nullable = false, unique = true, length = 20)
     private String telephone;
 
-    @Column(nullable = false, unique = true, length = 150)
+    // Facultatif (vide pour ceux qui n'ont pas d'email). S'il existe, il est unique.
+    @Column(unique = true, length = 150)
     private String email;
 
     @Column(name = "mot_de_passe_hache", nullable = false)
@@ -96,6 +97,8 @@ public class Utilisateur extends BaseEntity {
             inverseJoinColumns = @JoinColumn(name = "zone_id"))
     private Set<Zone> zones = new HashSet<>();
 
+    // Dernière connexion. Vide = l'utilisateur ne s'est encore jamais connecté
+    // (sert à afficher la fenêtre de bienvenue une seule fois, juste après l'inscription)
     @Column(name = "dernier_acces")
     private LocalDateTime dernierAcces;
 

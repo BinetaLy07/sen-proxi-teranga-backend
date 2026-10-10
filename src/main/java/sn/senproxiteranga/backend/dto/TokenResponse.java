@@ -9,4 +9,8 @@ public record TokenResponse(
         Instant accessExpiresAt,
         Instant refreshExpiresAt,
         Long utilisateurId,
-        String role) {}
+        String role,
+        String prenom,               // pour dire « Dalal ak diam, Moussa ! »
+        String nom,
+        boolean premiereConnexion    // true : 1re connexion après l'inscription (fenêtre de bienvenue)
+) {}

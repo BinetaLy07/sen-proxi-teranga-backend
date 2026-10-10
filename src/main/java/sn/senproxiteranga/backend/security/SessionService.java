@@ -13,6 +13,7 @@ import sn.senproxiteranga.backend.domain.Utilisateur;
 import sn.senproxiteranga.backend.domain.enums.StatutCompte;
 import sn.senproxiteranga.backend.dto.ConnexionRequest;
 import sn.senproxiteranga.backend.dto.TokenResponse;
+import sn.senproxiteranga.backend.mapper.UtilisateurMapper;
 import sn.senproxiteranga.backend.repository.AuthSessionRepository;
 import sn.senproxiteranga.backend.repository.UtilisateurRepository;
 
@@ -22,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
@@ -33,6 +35,7 @@ public class SessionService {
     private final AuthSessionRepository sessions;
     private final UtilisateurRepository users;
     private final PasswordEncoder encoder;
+    private final UtilisateurMapper utilisateurMapper;
 
     @Value("${security.access-ttl:PT15M}")
     private Duration accessTtl;
@@ -45,17 +48,26 @@ public class SessionService {
             new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
                     .encode("dummy-password");
 
+    // Connexion avec le téléphone OU l'email (un « @ » = un email, sinon un numéro)
     public TokenResponse login(ConnexionRequest r) {
-        var user = users.findByEmailIgnoreCase(r.email().trim()).orElse(null);
+        String identifiant = r.identifiant().trim();
+        var user = (identifiant.contains("@")
+                        ? users.findByEmailIgnoreCase(identifiant)
+                        : users.findByTelephone(utilisateurMapper.normaliserTelephone(identifiant)))
+                .orElse(null);
         boolean matches =
                 encoder.matches(r.motDePasse(), user == null ? DUMMY : user.getMotDePasseHache());
         if (user == null || !matches || user.getStatutCompte() != StatutCompte.ACTIF) {
             throw invalid();
         }
+        // Jamais connecté avant = 1re connexion après l'inscription (fenêtre de bienvenue)
+        boolean premiereConnexion = user.getDernierAcces() == null;
+        user.setDernierAcces(LocalDateTime.now());
+
         var session = new AuthSession();
         session.setUtilisateur(user);
         session.setExpiresAt(Instant.now().plus(refreshTtl));
-        return rotate(session);
+        return rotate(session, premiereConnexion);
     }
 
     public TokenResponse refresh(String token) {
@@ -65,7 +77,7 @@ public class SessionService {
                 || s.getUtilisateur().getStatutCompte() != StatutCompte.ACTIF) {
             throw invalid();
         }
-        return rotate(s);
+        return rotate(s, false);
     }
 
     @Transactional(readOnly = true)
@@ -113,7 +125,7 @@ public class SessionService {
 
     public record SessionInfo(Long id, Instant expiresAt, boolean current) {}
 
-    private TokenResponse rotate(AuthSession s) {
+    private TokenResponse rotate(AuthSession s, boolean premiereConnexion) {
         String a = token();
         String r = token();
         s.setAccessHash(hash(a));
@@ -128,7 +140,10 @@ public class SessionService {
                 s.getAccessExpiresAt(),
                 s.getExpiresAt(),
                 s.getUtilisateur().getId(),
-                role(s.getUtilisateur()));
+                role(s.getUtilisateur()),
+                s.getUtilisateur().getPrenom(),
+                s.getUtilisateur().getNom(),
+                premiereConnexion);
     }
 
     static String role(Utilisateur utilisateur) {

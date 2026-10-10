@@ -21,8 +21,10 @@ public record InscriptionClientRequest(
                 message = "Numéro sénégalais invalide (ex : 771234567 ou +221771234567)")
         String telephone,
 
-        @NotBlank(message = "L'email est obligatoire")
+        // Facultatif : beaucoup d'utilisateurs (surtout les artisans) n'ont pas d'email.
+        // S'il est rempli, il doit être valide. On se connecte avec le téléphone OU l'email.
         @Email(message = "L'email n'est pas valide")
+        @Size(max = 150, message = "L'email ne doit pas dépasser 150 caractères")
         String email,
 
         @NotBlank(message = "Le mot de passe est obligatoire")

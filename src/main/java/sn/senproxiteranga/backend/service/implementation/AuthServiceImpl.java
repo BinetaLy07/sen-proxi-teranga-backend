@@ -269,9 +269,11 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    // Règle : un email et un téléphone ne servent qu'à un seul compte
+    // Règle : un email et un téléphone ne servent qu'à un seul compte.
+    // L'email est facultatif : on ne le vérifie que s'il est rempli.
     private void verifierEmailEtTelephoneLibres(String email, String telephone) {
-        if (utilisateurRepository.existsByEmailIgnoreCase(email.trim())) {
+        String mail = utilisateurMapper.normaliserEmail(email);
+        if (mail != null && utilisateurRepository.existsByEmailIgnoreCase(mail)) {
             throw new BusinessException("Cet email est déjà utilisé");
         }
         String tel = utilisateurMapper.normaliserTelephone(telephone);
