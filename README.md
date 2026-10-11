@@ -14,6 +14,8 @@ L'API écoute sur `http://localhost:8080`. Le frontend Angular utilise un proxy 
 
 ## Guides
 
+- [CI/CD GitHub Actions et préparation du VPS](docs/CI-CD.md).
+
 - [Authentification, rôles, sessions et migrations](docs/securite.md).
 - [Sécuriser un nouvel endpoint](docs/SECURISER-ENDPOINT.md) : règles HTTP, `@PreAuthorize`, propriétaire des données, validation et tests.
 - [Collection Postman de sécurité](docs/postman/README.md).
