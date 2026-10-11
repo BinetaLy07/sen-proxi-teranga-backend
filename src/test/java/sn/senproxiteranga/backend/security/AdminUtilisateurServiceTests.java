@@ -78,7 +78,7 @@ class AdminUtilisateurServiceTests {
 
     @Test
     void duplicateEmailDoesNotCreateAccount() {
-        when(users.existsByEmailIgnoreCase("Admin@example.com")).thenReturn(true);
+        when(users.existsByEmailIgnoreCase("admin@example.com")).thenReturn(true);
         assertThrows(
                 BusinessException.class,
                 () -> service.creerUtilisateur(request(NomRole.ADMINISTRATEUR)));

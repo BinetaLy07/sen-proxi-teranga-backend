@@ -40,7 +40,7 @@ MySQL et ses données sont conservés aux déploiements suivants. Modifier un mo
 
 ## Déploiement
 
-Le runner transfère l'image compressée par SCP, puis appelle `deploy/release.sh` par SSH. L'image est identifiée par le SHA du commit. Le backend tourne dans `senproxi-backend`, avec l'alias `backend` sur le réseau `senproxi`. Son port est accessible uniquement sur `127.0.0.1:8080` du VPS. Les fichiers envoyés sont conservés dans le volume Docker `senproxi-uploads`.
+Le runner transfère l'image compressée par SCP, puis appelle `deploy/release.sh` par SSH. L'image est identifiée par le SHA du commit. Le backend tourne dans `senproxi-backend`, avec l'alias `backend` sur le réseau `senproxi`. Son port est accessible uniquement sur `127.0.0.1:18080` du VPS. Les fichiers envoyés sont conservés dans le volume Docker `senproxi-uploads`.
 
 Le script vérifie `GET /api/categories` après démarrage. En cas d'échec, il tente de restaurer le conteneur précédent et fait échouer le job. Ce retour arrière ne restaure pas la base de données. Le redémarrage entraîne une courte interruption. Les images Docker précédentes sont conservées : prévoir une politique de nettoyage et des sauvegardes du volume et de MySQL.
 
@@ -56,3 +56,7 @@ docker build -t senproxi-backend:local .
 Ne pas lancer `deploy/publish.sh` localement avec des secrets de production pour un simple test de syntaxe. Les scripts de publication sont conçus pour le runner GitHub Linux.
 
 Références : [setup-java](https://github.com/actions/setup-java), [checkout](https://github.com/actions/checkout).
+
+## Installation actuelle du VPS
+
+Application : https://senproxi.82-29-172-15.sslip.io. Le domaine provisoire pointe vers 82.29.172.15. Traefik existant gere HTTPS ; les autres applications restent sur leurs routes. Le port 8080 etant deja occupe, le backend utilise 18080 en local. Les conteneurs ont des limites de memoire et CPU. Les secrets SSH des deux depots sont configures pour le deploiement.
