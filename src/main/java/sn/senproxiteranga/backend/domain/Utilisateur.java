@@ -56,6 +56,10 @@ public class Utilisateur extends BaseEntity {
     @Column(length = 255)
     private String adresse;
 
+    private Double latitude;
+
+    private Double longitude;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_id")
     private Zone zone;

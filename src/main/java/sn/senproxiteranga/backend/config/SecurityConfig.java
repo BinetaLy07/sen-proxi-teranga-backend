@@ -58,6 +58,8 @@ public class SecurityConfig {
                                         .authenticated()
                                         .requestMatchers("/api/auth/**")
                                         .authenticated()
+                                        .requestMatchers(HttpMethod.GET, "/api/proximite/professionnels")
+                                        .hasRole("CLIENT")
                                         .requestMatchers("/api/categories/toutes")
                                         .hasRole("ADMINISTRATEUR")
                                         .requestMatchers(
